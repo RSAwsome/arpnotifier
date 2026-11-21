@@ -49,6 +49,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.deferredInstall = e;
     showInstallBanner();
   });
+
+  // Smoothly hide splash screen after animation
+  setTimeout(() => {
+    const splash = document.getElementById('app-splash');
+    if (splash) splash.classList.add('hidden-splash');
+  }, 1100);
 });
 
 /* ── Service Worker ── */

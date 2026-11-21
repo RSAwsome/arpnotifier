@@ -209,25 +209,118 @@
   animation: scaleIn 0.3s ease both;
 }
 
-/* ── Particle ── */
-.particles {
-  position: absolute;
+/* ── Splash Screen & High-Speed Vande Bharat Animation ── */
+#app-splash {
+  position: fixed;
   inset: 0;
-  overflow: hidden;
+  z-index: 99999;
+  background: radial-gradient(circle at center, #121528 0%, #070812 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+  pointer-events: auto;
+}
+
+#app-splash.hidden-splash {
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0;
-  animation: particleFloat var(--dur, 4s) ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
+.splash-stage {
+  position: relative;
+  width: 280px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-@keyframes particleFloat {
-  0%   { opacity: 0; transform: translateY(100%) scale(0); }
-  20%  { opacity: 0.6; }
-  80%  { opacity: 0.3; }
-  100% { opacity: 0; transform: translateY(-100%) scale(1); }
+/* Speed track lines moving backwards */
+.speed-track {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), #6366f1, transparent);
+  animation: trackMove 0.8s linear infinite;
 }
+
+@keyframes trackMove {
+  0% { transform: scaleX(0.4) translateX(-100%); opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { transform: scaleX(1) translateX(100%); opacity: 0.2; }
+}
+
+.speed-streak {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  border-radius: 2px;
+  animation: streakPass 0.7s linear infinite;
+}
+
+.speed-streak:nth-child(1) { top: 35px; width: 80px; animation-delay: 0.1s; }
+.speed-streak:nth-child(2) { top: 55px; width: 120px; animation-delay: 0.35s; }
+.speed-streak:nth-child(3) { top: 75px; width: 60px; animation-delay: 0.2s; }
+
+@keyframes streakPass {
+  0% { transform: translateX(200px); opacity: 0; }
+  40% { opacity: 0.9; }
+  100% { transform: translateX(-200px); opacity: 0; }
+}
+
+/* Aerodynamic Vande Bharat Bullet Train Vector */
+.vb-train-svg {
+  width: 130px;
+  height: 70px;
+  filter: drop-shadow(0 8px 24px rgba(99, 102, 241, 0.5));
+  animation: vbFloat 1.8s ease-in-out infinite;
+}
+
+@keyframes vbFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(0.4deg); }
+}
+
+.splash-brand {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.splash-title {
+  font-family: var(--font-primary);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffffff 30%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.splash-tagline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--accent2);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* High-speed pulse glow ring */
+.splash-glow {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+  animation: glowPulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+

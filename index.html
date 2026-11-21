@@ -124,12 +124,59 @@
 </head>
 
 <body>
+
+<!-- ═══ HIGH-SPEED VANDE BHARAT SPLASH SCREEN ═══ -->
+<div id="app-splash" aria-hidden="true">
+  <div class="splash-glow"></div>
+  <div class="splash-stage">
+    <div class="speed-streak"></div>
+    <div class="speed-streak"></div>
+    <div class="speed-streak"></div>
+    <div class="speed-track"></div>
+    
+    <!-- Sleek Aerodynamic Vande Bharat Bullet Train SVG -->
+    <svg class="vb-train-svg" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Aerodynamic Nose Body -->
+      <path d="M10 58 C30 58, 60 55, 90 48 C130 38, 170 36, 192 52 C196 55, 196 64, 185 70 C160 82, 110 82, 10 82 Z" fill="#F8FAFC" />
+      
+      <!-- Signature Navy Blue Window Band & Roof -->
+      <path d="M40 38 C75 36, 120 34, 158 38 C176 40, 188 47, 190 53 C175 49, 135 44, 90 46 C60 48, 30 50, 10 50 Z" fill="#0F172A" />
+      
+      <!-- Windshield Glass with Cyan tint -->
+      <path d="M142 42 C158 43, 172 47, 182 52 C172 55, 155 54, 138 52 Z" fill="#0EA5E9" opacity="0.9" />
+      
+      <!-- Vande Bharat Saffron Stripe (Top) & Green Stripe (Bottom) -->
+      <path d="M10 54 L175 54 C165 57, 150 57, 10 57 Z" fill="#FF9933" />
+      <path d="M10 74 L165 74 C155 77, 130 77, 10 77 Z" fill="#138808" />
+      
+      <!-- Sleek Dual Sharp LED Headlights -->
+      <polygon points="186,60 196,62 192,66 184,63" fill="#FEF08A" />
+      <circle cx="193" cy="63" r="5" fill="#FEF08A" opacity="0.6" />
+      
+      <!-- Front Cowcatcher Aerodynamic Grille -->
+      <path d="M180 72 L192 72 L186 80 L174 80 Z" fill="#1E293B" />
+      
+      <!-- Speed Motion Wind lines -->
+      <line x1="0" y1="45" x2="30" y2="45" stroke="#818CF8" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+      <line x1="5" y1="62" x2="35" y2="62" stroke="#818CF8" stroke-width="2" stroke-linecap="round" opacity="0.4" />
+      <line x1="0" y1="80" x2="25" y2="80" stroke="#818CF8" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+    </svg>
+  </div>
+
+  <div class="splash-brand">
+    <div class="splash-title">ARP Notifier</div>
+    <div class="splash-tagline">Vande Bharat Express Speed</div>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- ═══ TOP NAV BAR ═══ -->
   <nav id="top-nav" role="navigation" aria-label="Top navigation">
     <div class="top-nav-left">
-      <div class="app-logo">🚂</div>
+      <div class="app-logo" style="background:transparent;box-shadow:none;">
+        <img src="icons/icon-72.png" width="32" height="32" alt="Vande Bharat logo" style="border-radius:8px;box-shadow:0 4px 12px rgba(108,99,255,0.4);" />
+      </div>
       <div>
         <div class="app-title">ARP Notifier</div>
         <div class="app-subtitle" id="top-nav-subtitle">Train Booking Tracker</div>
