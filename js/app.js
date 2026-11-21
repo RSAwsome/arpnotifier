@@ -22,8 +22,8 @@ const AppState = {
 document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(AppState.theme);
   registerServiceWorker();
-  await FirebaseManager.init();
-  await EventsManager.init();
+  
+  // Render visual UI immediately first (no blocking on network)
   setupNavigation();
   setupTopNav();
   setupThemeToggle();
@@ -32,6 +32,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTrainTab();
   setupSettingsModal();
   startGlobalCountdown();
+
+  // Async cloud sync in background
+  try {
+    await FirebaseManager.init();
+    await EventsManager.init();
+    renderDashboard();
+    renderCalendar();
+  } catch (err) {
+    console.warn('Background sync deferred:', err);
+  }
 
   // Handle PWA install prompt
   window.addEventListener('beforeinstallprompt', (e) => {
