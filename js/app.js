@@ -290,8 +290,38 @@ function setupTrainTab() {
       const t = document.getElementById('to-station');
       [f.value, t.value] = [t.value, f.value];
     });
+
+    // Render popular trains
+    renderPopularTrains();
   }
 }
+
+function renderPopularTrains() {
+  const listEl = document.getElementById('popular-trains-list');
+  if (!listEl) return;
+
+  const popular = window.POPULAR_TRAINS || [];
+  listEl.innerHTML = popular.slice(0, 8).map(t => `
+    <div class="glass-card stat-card row row-between" style="border-radius:12px;padding:10px 14px;cursor:pointer;" onclick="selectPopularTrain('${t.number}', '${t.from}', '${t.to}')">
+      <div class="card-content">
+        <div class="row row-gap-sm">
+          <span class="train-number-badge">${t.number}</span>
+          <div>
+            <p class="text-xs font-bold text-primary">${t.name}</p>
+            <p class="text-xs text-muted">${t.from} → ${t.to} <span class="badge badge-accent" style="font-size:9px;margin-left:4px;">${t.type}</span></p>
+          </div>
+        </div>
+      </div>
+      <span class="text-accent text-sm font-bold">Search →</span>
+    </div>
+  `).join('');
+}
+
+window.selectPopularTrain = function(num, from, to) {
+  document.getElementById('from-station').value = from;
+  document.getElementById('to-station').value = to;
+  searchTrains();
+};
 
 /* Station autocomplete using local popular stations */
 const POPULAR_STATIONS = [
@@ -385,19 +415,8 @@ async function searchTrains() {
 
   const data = await TRAIN_API.searchTrains(from, to, date);
 
-  if (data.error === 'no_key') {
-    resultsEl.innerHTML = `
-      <div class="glass-card stack stack-md" style="text-align:center;padding:24px;">
-        <div style="font-size:40px;">🔑</div>
-        <p class="text-base font-semibold">RapidAPI Key Required</p>
-        <p class="text-sm text-muted">${data.message}</p>
-        <button class="btn btn-primary btn-sm" onclick="UI.openModal('settings-modal')">Open Settings</button>
-      </div>`;
-    return;
-  }
-
-  if (data.error || !data.data) {
-    UI.error(resultsEl, data.message || 'No trains found. Try different stations or date.');
+  if (data.error || !data.data || !data.data.length) {
+    UI.empty(resultsEl, '🚂', 'No trains found', 'Try popular stations like SC, BZA, HYB, VSKP, NDLS, or MAS');
     return;
   }
 
@@ -442,14 +461,13 @@ async function openTrainDetail(train, date, from, to, cls, quota) {
   // ARP info
   const arpInfo = ARPCalc.computeARP(date);
 
-  // Fetch schedule and availability in parallel
-  const [scheduleData, availData] = await Promise.all([
-    TRAIN_API.getTrainSchedule(trainNum),
-    TRAIN_API.getSeatAvailability(trainNum, from, to, date, cls, quota),
-  ]);
-
+  // Fetch schedule
+  const scheduleData = await TRAIN_API.getTrainSchedule(trainNum);
   const stops = scheduleData?.data?.stops || scheduleData?.data?.train_route || [];
-  const avail = availData?.data || [];
+
+  const confirmTktSeatsUrl = `https://www.confirmtkt.com/trains/${from}-to-${to}`;
+  const confirmTktScheduleUrl = `https://www.confirmtkt.com/train-schedule/${trainNum}`;
+  const irctcUrl = 'https://www.irctc.co.in/nget/train-search';
 
   detailEl.innerHTML = `
     <div class="stack stack-lg">
@@ -504,31 +522,28 @@ async function openTrainDetail(train, date, from, to, cls, quota) {
           ${arpInfo && arpInfo.isOpened ? `
             <div class="mt-3">
               <span class="badge badge-success">🟢 ARP is Open — Book Now!</span>
-              <a href="https://www.irctc.co.in" target="_blank" rel="noopener" 
-                class="btn btn-primary btn-sm mt-2 w-full">
-                📱 Open IRCTC
-              </a>
             </div>` : ''}
         </div>
       </div>
 
-      <!-- Seat Availability -->
-      ${avail.length ? `
-        <div class="glass-card">
-          <div class="card-content">
-            <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-3">Seat Availability</p>
-            <div class="class-row">
-              ${avail.map(a => `
-                <div class="class-chip ${
-                  a.available_seats > 0 ? 'class-avail' : 
-                  a.current_status?.includes('WL') ? 'class-wl' : 'class-na'
-                }">
-                  ${a.class_type || cls}: 
-                  ${a.current_status || (a.available_seats > 0 ? 'AVL ' + a.available_seats : 'N/A')}
-                </div>`).join('')}
-            </div>
+      <!-- Live ConfirmTkt & IRCTC Action Buttons -->
+      <div class="glass-card">
+        <div class="card-content">
+          <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-2">Live Availability & Booking</p>
+          <p class="text-xs text-secondary mb-3">Check live real-time coach availability & book directly without any API key or subscription:</p>
+          <div class="grid-2 row-gap-sm">
+            <a href="${confirmTktSeatsUrl}" target="_blank" rel="noopener" class="btn btn-primary btn-sm text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
+              <span>🎫 Check Seats on ConfirmTkt</span>
+            </a>
+            <a href="${confirmTktScheduleUrl}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
+              <span>🕒 Live Status on ConfirmTkt</span>
+            </a>
           </div>
-        </div>` : ''}
+          <a href="${irctcUrl}" target="_blank" rel="noopener" class="btn btn-accent btn-sm mt-2 w-full text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
+            <span>📱 Book Official on IRCTC</span>
+          </a>
+        </div>
+      </div>
 
       <!-- Running Days -->
       ${train.train_run_days ? `
@@ -547,13 +562,13 @@ async function openTrainDetail(train, date, from, to, cls, quota) {
       <div class="glass-card">
         <div class="card-content">
           <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-3">
-            Complete Route ${stops.length ? `(${stops.length} stations)` : ''}
+            Intermediate Stations Route ${stops.length ? `(${stops.length} stations)` : ''}
           </p>
           ${stops.length
             ? UI.renderRouteTimeline(stops, from)
             : `<div class="text-center" style="padding:16px;">
-                 <div class="loader-dots"><span></span><span></span><span></span></div>
-                 <p class="text-xs text-muted mt-2">Route data unavailable</p>
+                 <p class="text-xs text-muted mb-2">Complete route available on ConfirmTkt</p>
+                 <a href="${confirmTktScheduleUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">View Station Route on ConfirmTkt →</a>
                </div>`}
         </div>
       </div>
@@ -594,16 +609,8 @@ async function checkPNR() {
 
   const data = await TRAIN_API.getPNRStatus(pnr);
 
-  if (data.error === 'no_key') {
-    resultEl.innerHTML = `<div class="glass-card text-center p-4">
-      <p>🔑 Add your RapidAPI key in Settings first</p>
-      <button class="btn btn-primary btn-sm mt-3" onclick="UI.openModal('settings-modal')">Settings</button>
-    </div>`;
-    return;
-  }
-
   if (data.error || !data.data) {
-    UI.error(resultEl, data.message || 'PNR not found or expired');
+    UI.error(resultEl, data.message || 'PNR format invalid');
     return;
   }
 
@@ -616,39 +623,14 @@ async function checkPNR() {
             <p class="text-xs text-muted">PNR Number</p>
             <p class="font-mono font-bold text-lg text-accent">${pnr}</p>
           </div>
-          <span class="badge ${p.chart_prepared ? 'badge-success' : 'badge-warning'}">
-            ${p.chart_prepared ? '✅ Chart Prepared' : '⏳ Chart Pending'}
+          <span class="badge badge-accent">
+            ${p.zone || 'Indian Railways'}
           </span>
         </div>
-        <div class="grid-2 mb-3">
-          <div>
-            <p class="text-xs text-muted">Train</p>
-            <p class="text-sm font-bold">${p.train_name || '—'}</p>
-            <p class="font-mono text-xs text-accent">${p.train_number || '—'}</p>
-          </div>
-          <div>
-            <p class="text-xs text-muted">Date of Journey</p>
-            <p class="text-sm font-bold">${p.doj || '—'}</p>
-          </div>
-          <div>
-            <p class="text-xs text-muted">From → To</p>
-            <p class="font-mono text-sm font-bold">${p.from_station || '—'} → ${p.to_station || '—'}</p>
-          </div>
-          <div>
-            <p class="text-xs text-muted">Class</p>
-            <p class="text-sm font-bold">${p.class || '—'}</p>
-          </div>
-        </div>
-        <div class="divider mb-3"></div>
-        <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-2">Passengers</p>
-        ${(p.passenger_list || []).map((pass, i) => `
-          <div class="row row-between py-2 ${i < (p.passenger_list.length-1) ? 'border-b' : ''}">
-            <span class="text-sm text-secondary">Passenger ${i+1}</span>
-            <span class="badge ${
-              pass.current_status?.includes('CNF') ? 'badge-success' :
-              pass.current_status?.includes('WL') ? 'badge-warning' : 'badge-error'
-            }">${pass.current_status || '—'}</span>
-          </div>`).join('')}
+        <p class="text-xs text-secondary mb-3">${p.message}</p>
+        <a href="${p.confirmTktUrl}" target="_blank" rel="noopener" class="btn btn-primary btn-full text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
+          <span>📋 View Live PNR Status on ConfirmTkt →</span>
+        </a>
       </div>
     </div>`;
 }
@@ -1220,13 +1202,13 @@ function setupSettingsModal() {
 
   document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const rapidKey = document.getElementById('rapidapi-key').value.trim();
+    const rapidKey = document.getElementById('rapidapi-key')?.value?.trim();
     if (rapidKey) localStorage.setItem('rapidapi_key', rapidKey);
 
-    const fbApiKey = document.getElementById('firebase-api-key').value.trim();
-    const fbProjectId = document.getElementById('firebase-project-id').value.trim();
-    const fbAppId = document.getElementById('firebase-app-id').value.trim();
-    const fbMsgId = document.getElementById('firebase-messaging-id').value.trim();
+    const fbApiKey = document.getElementById('firebase-api-key')?.value?.trim();
+    const fbProjectId = document.getElementById('firebase-project-id')?.value?.trim();
+    const fbAppId = document.getElementById('firebase-app-id')?.value?.trim();
+    const fbMsgId = document.getElementById('firebase-messaging-id')?.value?.trim();
 
     if (fbApiKey && fbProjectId) {
       FirebaseManager.saveConfig({
@@ -1241,7 +1223,7 @@ function setupSettingsModal() {
       UI.toast('Firebase connected! ✅', 'success');
     }
 
-    if (rapidKey) UI.toast('RapidAPI key saved! ✅', 'success');
+    if (rapidKey) UI.toast('Settings saved! ✅', 'success');
     UI.closeModal('settings-modal');
   });
 }
