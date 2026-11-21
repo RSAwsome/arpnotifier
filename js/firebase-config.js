@@ -1,9 +1,16 @@
 /* ============================================================
-   Firebase Config — User fills in their own project credentials
+   Firebase Config — Pre-configured with user's Firebase project
    ============================================================ */
 
-// Firebase SDK loaded via CDN in index.html
-// User provides their config via Settings modal
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC_oP-Plzzy4bfudCzOoley-5qGZ272byY",
+  authDomain: "arp-notifier.firebaseapp.com",
+  projectId: "arp-notifier",
+  storageBucket: "arp-notifier.firebasestorage.app",
+  messagingSenderId: "993366142005",
+  appId: "1:993366142005:web:943e2689bad5aa5fa5557c",
+  measurementId: "G-K53XWG604C"
+};
 
 let _db = null;
 let _auth = null;
@@ -12,15 +19,14 @@ let _app = null;
 const FirebaseManager = {
   initialized: false,
 
-  /** Initialize with user's config (stored in localStorage) */
+  /** Initialize with preset or stored user config */
   async init() {
     const cfg = this.getConfig();
     if (!cfg || !cfg.apiKey) {
-      console.log('Firebase: No config found. Data stored locally only.');
+      console.log('Firebase: No config found. Storing locally.');
       return false;
     }
     try {
-      // Dynamic import of Firebase modules
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js');
       const { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, onSnapshot }
         = await import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js');
@@ -32,7 +38,7 @@ const FirebaseManager = {
       _db = getFirestore(_app);
       this.initialized = true;
       this._firestore = { collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, onSnapshot };
-      console.log('Firebase: Initialized successfully ✓');
+      console.log('Firebase: Connected to project "arp-notifier" ✓');
       return true;
     } catch (err) {
       console.error('Firebase init error:', err);
@@ -40,12 +46,13 @@ const FirebaseManager = {
     }
   },
 
-  /** Get stored Firebase config */
+  /** Get stored Firebase config or fall back to default */
   getConfig() {
     try {
       const raw = localStorage.getItem('firebase_config');
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return DEFAULT_FIREBASE_CONFIG;
   },
 
   /** Save Firebase config */
@@ -55,7 +62,6 @@ const FirebaseManager = {
 
   /** Save a user event to Firestore */
   async saveEvent(event) {
-    // Always save to localStorage first (offline-first)
     this._saveEventLocal(event);
 
     if (!this.initialized || !_db) return { success: true, local: true };
@@ -81,7 +87,6 @@ const FirebaseManager = {
       const snap = await getDocs(q);
       const events = [];
       snap.forEach(d => events.push(d.data()));
-      // Merge with local (Firestore wins for conflicts)
       const merged = this._mergeEvents(local, events);
       this._saveAllEventsLocal(merged);
       return merged;
@@ -131,7 +136,7 @@ const FirebaseManager = {
   _mergeEvents(local, remote) {
     const map = new Map();
     local.forEach(e => map.set(e.id, e));
-    remote.forEach(e => map.set(e.id, e)); // remote wins
+    remote.forEach(e => map.set(e.id, e));
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   },
 };
@@ -143,3 +148,4 @@ function generateId() {
 
 window.FirebaseManager = FirebaseManager;
 window.generateId = generateId;
+window.DEFAULT_FIREBASE_CONFIG = DEFAULT_FIREBASE_CONFIG;
