@@ -1,0 +1,9 @@
+# Git ignore
+generate_icons.py
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
+.env
+*.log
+node_modules/

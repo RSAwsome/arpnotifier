@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ARPNotify" />
+  <meta name="description" content="Indian Railway ARP Calculator & Train Booking Window Tracker with Festival Calendar" />
+  <meta name="theme-color" content="#080812" />
+  <meta name="msapplication-TileColor" content="#080812" />
+  <meta name="msapplication-TileImage" content="icons/icon-144.png" />
+
+  <title>ARP Notifier — Train Booking Tracker</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/themes.css" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+
+  <style>
+    /* ── Inline critical styles ── */
+    body { opacity: 0; transition: opacity 0.3s ease; }
+    body.ready { opacity: 1; }
+
+    /* Suggestion dropdown */
+    .suggestions-box {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      z-index: 500;
+      background: var(--modal-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .suggestion-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      display: flex;
+      align-items: center;
+    }
+    .suggestion-item:hover { background: var(--glass-bg); }
+    .ml-2 { margin-left: 8px; }
+
+    /* Section pill header */
+    .section-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-glass);
+      border: 1px solid var(--accent-dim);
+      color: var(--accent);
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* Pager dots for onboarding (unused but ready) */
+    .tab-panel > .stagger-children { animation-fill-mode: both; }
+
+    /* Bottom sheet handle area */
+    .modal-sheet { position: relative; }
+
+    /* Stat row */
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 400px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Fab button */
+    .fab {
+      position: fixed;
+      right: 18px;
+      bottom: calc(var(--bottombar-height) + var(--safe-bottom) + 12px);
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 6px 24px rgba(108,99,255,0.6);
+      cursor: pointer;
+      z-index: 900;
+      transition: all var(--transition-fast);
+    }
+    .fab:hover { transform: scale(1.08); box-shadow: 0 10px 32px rgba(108,99,255,0.8); }
+    .fab:active { transform: scale(0.95); }
+
+    /* Tab 2 search section */
+    .search-section { position: relative; }
+
+    /* Train detail modal content */
+    #train-detail-content { overflow-y: auto; }
+
+    /* Legend */
+    .legend-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  </style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ═══ TOP NAV BAR ═══ -->
+  <nav id="top-nav" role="navigation" aria-label="Top navigation">
+    <div class="top-nav-left">
+      <div class="app-logo">🚂</div>
+      <div>
+        <div class="app-title">ARP Notifier</div>
+        <div class="app-subtitle" id="top-nav-subtitle">Train Booking Tracker</div>
+      </div>
+    </div>
+    <div class="top-nav-right">
+      <button id="install-btn" class="icon-btn hidden" title="Install App" aria-label="Install App">📲</button>
+      <button id="theme-toggle" class="icon-btn" title="Toggle Theme" aria-label="Toggle Theme">☀️</button>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+    </div>
+  </nav>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <main id="main-content" role="main">
+
+    <!-- ─── TAB 1: DASHBOARD ─── -->
+    <div id="tab-dashboard" class="tab-panel active" role="tabpanel">
+      <div class="stack stack-xl stagger-children">
+
+        <!-- Hero ARP Card -->
+        <div class="hero-card">
+          <div class="hero-content">
+            <div class="row row-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wide" style="opacity:0.75;">Today's ARP Window</span>
+              <div class="row row-gap-sm" style="align-items:center;">
+                <div class="pulse-dot"></div>
+                <span class="text-xs font-semibold" style="opacity:0.75;">LIVE</span>
+              </div>
+            </div>
+            <p class="text-xs mb-1" style="opacity:0.75;">Journeys opening today (60 days from now):</p>
+            <p class="text-2xl font-black tracking-tight mb-1" id="today-journey-date">Loading…</p>
+            <p class="text-xs" id="today-arp-time" style="opacity:0.75;">Booking opens at 8:00 AM IST</p>
+
+            <!-- Particles decoration -->
+            <div class="particles" aria-hidden="true">
+              <div class="particle" style="left:10%;background:rgba(255,255,255,0.3);width:4px;height:4px;--dur:3s;--delay:0s;"></div>
+              <div class="particle" style="left:30%;background:rgba(255,255,255,0.2);width:3px;height:3px;--dur:4s;--delay:1s;"></div>
+              <div class="particle" style="left:60%;background:rgba(255,255,255,0.3);width:5px;height:5px;--dur:3.5s;--delay:0.5s;"></div>
+              <div class="particle" style="left:80%;background:rgba(255,255,255,0.2);width:3px;height:3px;--dur:5s;--delay:2s;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card glass-card" style="border-left:3px solid var(--accent);">
+            <div class="card-content">
+              <div class="stat-icon">📅</div>
+              <div class="stat-value text-accent" style="font-size:28px;">60</div>
+              <div class="stat-label">Days ARP Window</div>
+            </div>
+          </div>
+          <div class="stat-card glass-card" style="border-left:3px solid #34d399;">
+            <div class="card-content">
+              <div class="stat-icon">⏰</div>
+              <div class="stat-value" style="font-size:20px;color:#34d399;">8 AM</div>
+              <div class="stat-label">Opens Daily (IST)</div>
+            </div>
+          </div>
+          <div class="stat-card glass-card" style="border-left:3px solid #fbbf24;">
+            <div class="card-content">
+              <div class="stat-icon">🎫</div>
+              <div class="stat-value" style="font-size:22px;color:#fbbf24;" id="dash-event-count">0</div>
+              <div class="stat-label">My Events</div>
+            </div>
+          </div>
+          <div class="stat-card glass-card" style="border-left:3px solid #f87171;">
+            <div class="card-content">
+              <div class="stat-icon">🗓️</div>
+              <div class="stat-value" style="font-size:22px;color:#f87171;" id="dash-festival-count">25+</div>
+              <div class="stat-label">Festivals Tracked</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARP Calculator -->
+        <div class="glass-card">
+          <div class="card-content">
+            <div class="section-pill">🧮 ARP Calculator</div>
+            <form id="dash-arp-form">
+              <div class="input-group mb-3">
+                <label class="input-label" for="dash-journey-date">Select Journey Date</label>
+                <input type="date" id="dash-journey-date" class="input-field" required />
+              </div>
+            </form>
+            <!-- Result -->
+            <div id="dash-arp-result" class="hidden stack stack-md">
+              <div class="glass-card" style="background:var(--accent-glass);border:1.5px solid var(--accent-dim);border-radius:16px;padding:16px;">
+                <div class="card-content">
+                  <div class="row row-between mb-2">
+                    <div>
+                      <p class="text-xs text-muted uppercase tracking-wide font-semibold">Book Ticket On</p>
+                      <p class="text-lg font-black text-accent tracking-tight" id="result-arp-date">—</p>
+                      <p class="text-xs text-muted" id="result-arp-time">at 8:00 AM IST</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-xs text-muted">Journey Date</p>
+                      <p class="text-sm font-bold" id="result-journey-date">—</p>
+                      <p class="text-xs text-muted" id="result-days-from-now">—</p>
+                    </div>
+                  </div>
+                  <div class="progress-bar mt-2" id="arp-progress">
+                    <div class="progress-fill" style="width:0%"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Countdown -->
+              <div id="result-countdown" class="glass-card" style="padding:20px;border-radius:16px;">
+                <div class="card-content text-center">
+                  <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-3">Countdown to ARP Opening</p>
+                </div>
+              </div>
+              <!-- IRCTC Link -->
+              <a href="https://www.irctc.co.in" target="_blank" rel="noopener noreferrer"
+                class="btn btn-primary btn-full">
+                🎫 Book on IRCTC
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming ARP Windows -->
+        <div>
+          <div class="section-header">
+            <span class="section-pill">📆 Upcoming ARP Opens</span>
+          </div>
+          <div id="upcoming-arp-list" class="stack stack-sm"></div>
+        </div>
+
+        <!-- My Events Preview -->
+        <div>
+          <div class="section-header">
+            <span class="section-pill">📌 My Upcoming Events</span>
+            <button class="section-action" onclick="switchTab('calendar')">View All →</button>
+          </div>
+          <div id="dash-events-list" class="stack stack-sm"></div>
+        </div>
+
+        <!-- ARP Info Card -->
+        <div class="glass-card">
+          <div class="card-content">
+            <div class="section-pill">ℹ️ ARP Rules</div>
+            <div class="stack stack-sm mt-2">
+              <div class="row row-gap-sm">
+                <span>🗓️</span>
+                <p class="text-sm text-secondary"><span class="font-semibold text-primary">60 days</span> before journey (excluding journey date) — effective Nov 1, 2024</p>
+              </div>
+              <div class="row row-gap-sm">
+                <span>⏰</span>
+                <p class="text-sm text-secondary">Booking opens at <span class="font-semibold text-primary">8:00 AM IST</span> (online & counters)</p>
+              </div>
+              <div class="row row-gap-sm">
+                <span>✈️</span>
+                <p class="text-sm text-secondary">Foreign tourists: <span class="font-semibold text-primary">365-day ARP</span> (unchanged)</p>
+              </div>
+              <div class="row row-gap-sm">
+                <span>⚡</span>
+                <p class="text-sm text-secondary">Tatkal opens <span class="font-semibold text-primary">1 day before</span> journey at 10 AM (SL) / 11 AM (AC)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── TAB 2: TRAIN SEARCH ─── -->
+    <div id="tab-trains" class="tab-panel" role="tabpanel">
+      <div class="stack stack-xl stagger-children">
+
+        <!-- Search Header -->
+        <div class="hero-card" style="padding:16px 18px;">
+          <div class="hero-content">
+            <div class="text-xs font-semibold uppercase tracking-wide mb-1" style="opacity:0.75;">🚆 Train Search & ARP</div>
+            <p class="text-xl font-black tracking-tight">Find Trains & Check</p>
+            <p class="text-xl font-black tracking-tight">Booking Windows</p>
+          </div>
+        </div>
+
+        <!-- Train Search Form -->
+        <div class="glass-card">
+          <div class="card-content">
+            <div class="section-pill">🔍 Search Trains</div>
+            <form id="train-search-form">
+              <div class="stack stack-md mt-2">
+                <!-- From / Swap / To -->
+                <div class="relative">
+                  <div class="input-group">
+                    <label class="input-label" for="from-station">From Station</label>
+                    <input type="text" id="from-station" class="input-field" placeholder="e.g. SC, HYB, NDLS" autocomplete="off" />
+                  </div>
+                  <div id="from-suggestions" class="suggestions-box hidden"></div>
+                </div>
+
+                <div class="row row-center">
+                  <button type="button" id="swap-stations" class="icon-btn" style="width:36px;height:36px;" aria-label="Swap stations">⇅</button>
+                </div>
+
+                <div class="relative">
+                  <div class="input-group">
+                    <label class="input-label" for="to-station">To Station</label>
+                    <input type="text" id="to-station" class="input-field" placeholder="e.g. BZA, VSKP, NDLS" autocomplete="off" />
+                  </div>
+                  <div id="to-suggestions" class="suggestions-box hidden"></div>
+                </div>
+
+                <!-- Date -->
+                <div class="input-group">
+                  <label class="input-label" for="train-date">Date of Journey</label>
+                  <input type="date" id="train-date" class="input-field" required />
+                </div>
+
+                <!-- Class & Quota -->
+                <div class="grid-2">
+                  <div class="input-group">
+                    <label class="input-label" for="train-class">Class</label>
+                    <select id="train-class" class="input-field">
+                      <option value="SL">SL - Sleeper</option>
+                      <option value="3A">3A - Third AC</option>
+                      <option value="2A">2A - Second AC</option>
+                      <option value="1A">1A - First AC</option>
+                      <option value="CC">CC - Chair Car</option>
+                      <option value="EC">EC - Exec Chair</option>
+                      <option value="2S">2S - Second Sitting</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label" for="train-quota">Quota</label>
+                    <select id="train-quota" class="input-field">
+                      <option value="GN">General</option>
+                      <option value="TQ">Tatkal</option>
+                      <option value="PT">Prem. Tatkal</option>
+                      <option value="LD">Ladies</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                  🔍 Search Trains
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ARP for searched date -->
+        <div id="search-arp-info"></div>
+
+        <!-- Results -->
+        <div id="train-results-section" class="hidden">
+          <div class="section-header">
+            <span class="section-pill">🚂 Results</span>
+          </div>
+          <div id="train-results" class="stack stack-sm"></div>
+        </div>
+
+        <!-- Popular Trains -->
+        <div>
+          <div class="section-pill">⭐ Popular Trains (South India)</div>
+          <div id="popular-trains-list" class="stack stack-sm mt-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- PNR Status -->
+        <div class="glass-card">
+          <div class="card-content">
+            <div class="section-pill">📋 PNR Status</div>
+            <form id="pnr-form" class="mt-2">
+              <div class="input-group mb-3">
+                <label class="input-label" for="pnr-input">10-Digit PNR Number</label>
+                <input type="tel" id="pnr-input" class="input-field font-mono"
+                  placeholder="e.g. 1234567890" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" />
+              </div>
+              <button type="submit" class="btn btn-primary btn-full">📋 Check PNR Status</button>
+            </form>
+            <div id="pnr-result" class="hidden mt-3"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── TAB 3: CALENDAR ─── -->
+    <div id="tab-calendar" class="tab-panel" role="tabpanel">
+      <div class="stack stack-xl">
+
+        <!-- Calendar Header -->
+        <div class="glass-card">
+          <div class="card-content">
+            <div class="section-pill">📅 Festival & ARP Calendar</div>
+
+            <!-- Month navigation -->
+            <div class="row row-between mt-2 mb-4" style="align-items:center;">
+              <button id="cal-prev" class="icon-btn" aria-label="Previous month">‹</button>
+              <div class="text-center">
+                <p class="text-lg font-bold text-primary" id="cal-month-year">—</p>
+              </div>
+              <button id="cal-next" class="icon-btn" aria-label="Next month">›</button>
+            </div>
+
+            <!-- Day headers -->
+            <div class="calendar-grid mb-1">
+              <div class="cal-day-header">Sun</div>
+              <div class="cal-day-header">Mon</div>
+              <div class="cal-day-header">Tue</div>
+              <div class="cal-day-header">Wed</div>
+              <div class="cal-day-header">Thu</div>
+              <div class="cal-day-header">Fri</div>
+              <div class="cal-day-header">Sat</div>
+            </div>
+
+            <!-- Calendar days -->
+            <div id="calendar-grid" class="calendar-grid"></div>
+
+            <!-- Legend -->
+            <div class="legend-row mt-3">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div>Today</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#f87171;"></div>Sunday / Holiday</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#fbbf24;"></div>Friday</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;"></div>My Event</div>
+            </div>
+
+            <!-- Today button -->
+            <button id="cal-today" class="btn btn-glass btn-sm w-full mt-3">📍 Jump to Today</button>
+          </div>
+        </div>
+
+        <!-- Selected Date Details -->
+        <div id="cal-date-details" class="hidden"></div>
+
+        <!-- This Month Events -->
+        <div>
+          <div class="section-pill">📌 This Month's Highlights</div>
+          <div id="month-events-list" class="stack stack-sm mt-2"></div>
+        </div>
+
+        <!-- All My Events -->
+        <div>
+          <div class="section-header">
+            <span class="section-pill">🗂️ All My Events</span>
+            <button class="section-action" onclick="openAddEventModal(null)">+ Add</button>
+          </div>
+          <div id="all-events-list" class="stack stack-sm"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══ BOTTOM NAV BAR ═══ -->
+  <nav id="bottom-nav" role="navigation" aria-label="Bottom navigation">
+    <div class="nav-items">
+      <button class="nav-item active" data-tab="dashboard" aria-label="Dashboard" role="tab">
+        <div class="nav-pill"></div>
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" data-tab="trains" aria-label="Trains" role="tab">
+        <div class="nav-pill"></div>
+        <span class="nav-icon">🚂</span>
+        <span class="nav-label">Trains</span>
+      </button>
+      <button class="nav-item" data-tab="calendar" aria-label="Calendar" role="tab">
+        <div class="nav-pill"></div>
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Calendar</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══ FAB (Calendar Add Event) ═══ -->
+  <button class="fab hidden" id="add-event-fab" aria-label="Add Event">+</button>
+
+  <!-- ═══ TOAST CONTAINER ═══ -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ═══ MODALS ═══ -->
+
+  <!-- Train Detail Modal -->
+  <div id="train-detail-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="row row-between mb-4">
+        <h2 class="text-lg font-bold">Train Details</h2>
+        <button class="icon-btn" onclick="UI.closeModal('train-detail-modal')" aria-label="Close">✕</button>
+      </div>
+      <div id="train-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- Add Event Modal -->
+  <div id="add-event-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="row row-between mb-4">
+        <h2 class="text-lg font-bold">📌 Add Event</h2>
+        <button class="icon-btn" onclick="UI.closeModal('add-event-modal')" aria-label="Close">✕</button>
+      </div>
+      <form id="add-event-form" class="stack stack-md">
+
+        <div class="input-group">
+          <label class="input-label" for="event-name">Event Name *</label>
+          <input type="text" id="event-name" class="input-field" placeholder="e.g. Trip to Hyderabad" required />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="event-date">Journey Date *</label>
+          <input type="date" id="event-date" class="input-field" required onchange="updateEventPreview()" />
+        </div>
+
+        <div class="input-group relative">
+          <label class="input-label" for="event-train-number">Train Number</label>
+          <input type="text" id="event-train-number" class="input-field font-mono" placeholder="e.g. 12722" autocomplete="off" />
+          <div id="event-train-suggestions" class="suggestions-box hidden"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="event-train-name">Train Name</label>
+          <input type="text" id="event-train-name" class="input-field" placeholder="auto-filled from train number" />
+        </div>
+
+        <div class="grid-2">
+          <div class="input-group">
+            <label class="input-label" for="event-from-station">From</label>
+            <input type="text" id="event-from-station" class="input-field font-mono" placeholder="SC" />
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="event-to-station">To</label>
+            <input type="text" id="event-to-station" class="input-field font-mono" placeholder="NDLS" />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="event-boarding-station">Boarding Station</label>
+          <input type="text" id="event-boarding-station" class="input-field font-mono" placeholder="same as From or intermediate" />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="event-notes">Notes (optional)</label>
+          <input type="text" id="event-notes" class="input-field" placeholder="PNR, seat class, etc." />
+        </div>
+
+        <!-- ARP Preview (auto-updates) -->
+        <div id="event-arp-preview" class="hidden"></div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          💾 Save Event
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="row row-between mb-4">
+        <h2 class="text-lg font-bold">⚙️ Settings</h2>
+        <button class="icon-btn" onclick="UI.closeModal('settings-modal')" aria-label="Close">✕</button>
+      </div>
+      <form id="settings-form" class="stack stack-md">
+
+        <!-- RapidAPI Key -->
+        <div class="glass-card" style="padding:14px;border-radius:14px;">
+          <div class="card-content">
+            <p class="text-sm font-bold text-primary mb-1">🚂 Train API (RapidAPI)</p>
+            <p class="text-xs text-muted mb-3">Required for live train search, seat availability & PNR status.
+              <a href="https://rapidapi.com/hub" target="_blank" style="color:var(--accent);">Get free key →</a>
+            </p>
+            <div class="input-group">
+              <label class="input-label" for="rapidapi-key">RapidAPI Key</label>
+              <input type="password" id="rapidapi-key" class="input-field font-mono" placeholder="Paste your RapidAPI key" autocomplete="off" />
+            </div>
+            <p class="text-xs text-muted mt-2">Search for "IRCTC API" on RapidAPI → subscribe free tier → copy X-RapidAPI-Key</p>
+          </div>
+        </div>
+
+        <!-- Firebase Config -->
+        <div class="glass-card" style="padding:14px;border-radius:14px;">
+          <div class="card-content">
+            <p class="text-sm font-bold text-primary mb-1">🔥 Firebase (Optional)</p>
+            <p class="text-xs text-muted mb-3">Sync your events across devices. Free Spark plan.
+              <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent);">Create project →</a>
+            </p>
+            <div class="stack stack-sm">
+              <div class="input-group">
+                <label class="input-label" for="firebase-api-key">Firebase API Key</label>
+                <input type="text" id="firebase-api-key" class="input-field font-mono" placeholder="AIzaSy..." autocomplete="off" />
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="firebase-project-id">Project ID</label>
+                <input type="text" id="firebase-project-id" class="input-field font-mono" placeholder="my-project-id" />
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="firebase-app-id">App ID</label>
+                <input type="text" id="firebase-app-id" class="input-field font-mono" placeholder="1:xxx:web:xxx" />
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="firebase-messaging-id">Messaging Sender ID</label>
+                <input type="text" id="firebase-messaging-id" class="input-field font-mono" placeholder="123456789" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme & Preferences -->
+        <div class="glass-card" style="padding:14px;border-radius:14px;">
+          <div class="card-content">
+            <p class="text-sm font-bold text-primary mb-2">🎨 Appearance</p>
+            <div class="row row-between">
+              <span class="text-sm text-secondary">Theme Mode</span>
+              <button type="button" class="btn btn-glass btn-sm" onclick="document.getElementById('theme-toggle').click()">
+                Toggle Theme
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- App Info -->
+        <div class="glass-card" style="padding:14px;border-radius:14px;">
+          <div class="card-content">
+            <p class="text-sm font-bold text-primary mb-2">📱 About</p>
+            <div class="stack stack-sm">
+              <div class="row row-between">
+                <span class="text-xs text-muted">Version</span>
+                <span class="text-xs font-mono">1.0.0</span>
+              </div>
+              <div class="row row-between">
+                <span class="text-xs text-muted">ARP Days</span>
+                <span class="text-xs font-bold text-accent">60 days</span>
+              </div>
+              <div class="row row-between">
+                <span class="text-xs text-muted">Data Storage</span>
+                <span class="text-xs text-muted">Local + Firebase (optional)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">💾 Save Settings</button>
+      </form>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Scripts (defer loaded for performance) -->
+<script src="js/arp-calculator.js"></script>
+<script src="js/festivals.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/train-api.js"></script>
+<script src="js/events-manager.js"></script>
+<script src="js/ui-components.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  // ── Body fade-in after CSS loads ──
+  document.body.classList.add('ready');
+
+  // ── Render popular trains on Tab 2 load ──
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('popular-trains-list');
+    if (container && window.POPULAR_TRAINS) {
+      POPULAR_TRAINS.slice(0, 6).forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'train-card';
+        card.innerHTML = `
+          <div class="card-content">
+            <div class="row row-between mb-1">
+              <span class="train-number-badge">${t.number}</span>
+            </div>
+            <p class="text-sm font-semibold text-primary">${t.name}</p>
+            <div class="row row-gap-sm mt-2 text-xs text-muted">
+              <span class="font-mono font-bold">${t.from}</span>
+              <span>→</span>
+              <span class="font-mono font-bold">${t.to}</span>
+            </div>
+          </div>`;
+        card.addEventListener('click', () => {
+          document.getElementById('from-station').value = t.from;
+          document.getElementById('to-station').value = t.to;
+          document.getElementById('train-search-form').scrollIntoView({ behavior:'smooth' });
+        });
+        container.appendChild(card);
+      });
+    }
+
+    // Update event count in dashboard
+    const eventsCount = EventsManager.events?.length || 0;
+    const countEl = document.getElementById('dash-event-count');
+    if (countEl) countEl.textContent = eventsCount;
+
+    // Show FAB on calendar tab
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const fab = document.getElementById('add-event-fab');
+        if (fab) fab.classList.toggle('hidden', item.dataset.tab !== 'calendar');
+      });
+    });
+
+    // Render month events
+    renderMonthEvents();
+    renderAllEvents();
+  });
+
+  function renderMonthEvents() {
+    const year = AppState.calendarYear;
+    const month = AppState.calendarMonth;
+    const container = document.getElementById('month-events-list');
+    if (!container) return;
+
+    const festivals = FestivalsUtil.getEventsForMonth(year, month);
+    const userEvents = EventsManager.getEventsForMonth(year, month);
+    const all = [
+      ...festivals.map(f => ({ ...f, type: f.type, source: 'festival' })),
+      ...userEvents.map(e => ({ ...e, source: 'user' }))
+    ].sort((a,b) => a.date.localeCompare(b.date));
+
+    if (!all.length) {
+      UI.empty(container, '🌸', 'No events this month', 'Festivals and your saved events appear here');
+      return;
+    }
+
+    container.innerHTML = all.map(e => `
+      <div class="glass-card event-card ${e.source === 'festival' ? e.type : 'user-event'}" style="padding:12px 14px;border-radius:12px;">
+        <div class="card-content">
+          <div class="row row-between">
+            <div class="row row-gap-sm">
+              <span style="font-size:18px;">${e.emoji || '📌'}</span>
+              <div>
+                <p class="text-sm font-bold text-primary">${e.name}</p>
+                <p class="text-xs text-muted">${formatDateDisplay(e.date)}</p>
+              </div>
+            </div>
+            ${e.source === 'festival'
+              ? `<span class="badge badge-warning" style="font-size:10px;">${e.type}</span>`
+              : `<span class="badge badge-accent" style="font-size:10px;">My Event</span>`}
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderAllEvents() {
+    const container = document.getElementById('all-events-list');
+    if (!container) return;
+    const events = EventsManager.getAllEvents();
+    if (!events.length) {
+      UI.empty(container, '📌', 'No saved events', 'Tap + Add to create your first event');
+      return;
+    }
+    container.innerHTML = events.map(e => UI.renderEventCard(e, async (id) => {
+      if (confirm('Delete this event?')) {
+        await EventsManager.deleteEvent(id);
+        renderAllEvents();
+        renderCalendar();
+        renderDashboard();
+        UI.toast('Event deleted', 'success');
+      }
+    })).join('');
+  }
+</script>
+</body>
+</html>
