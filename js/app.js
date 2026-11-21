@@ -12,6 +12,7 @@ const AppState = {
   countdownTimer: null,
   calendarYear: new Date().getFullYear(),
   calendarMonth: new Date().getMonth() + 1,
+  calendarMode: 'month', // 'month', '6m', 'year'
   selectedCalDate: null,
   trainSearch: { from: '', to: '', date: '', trains: [], selected: null },
   pnrSearch: { pnr: '', result: null },
@@ -643,17 +644,68 @@ async function checkPNR() {
 function renderCalendar() {
   const year  = AppState.calendarYear;
   const month = AppState.calendarMonth;
-  renderCalendarHeader(year, month);
-  renderCalendarGrid(year, month);
-  renderEventsForMonth(year, month);
+  setupCalendarSelectors(year, month);
+  
+  if (AppState.calendarMode === 'month') {
+    document.getElementById('month-view-container')?.classList.remove('hidden');
+    document.getElementById('multi-month-container')?.classList.add('hidden');
+    document.getElementById('cal-nav-bar')?.classList.remove('hidden');
+    renderCalendarGrid(year, month);
+  } else if (AppState.calendarMode === '6m') {
+    document.getElementById('month-view-container')?.classList.add('hidden');
+    document.getElementById('multi-month-container')?.classList.remove('hidden');
+    document.getElementById('cal-nav-bar')?.classList.remove('hidden');
+    renderMultiMonthCalendar(year, month, 6);
+  } else if (AppState.calendarMode === 'year') {
+    document.getElementById('month-view-container')?.classList.add('hidden');
+    document.getElementById('multi-month-container')?.classList.remove('hidden');
+    document.getElementById('cal-nav-bar')?.classList.remove('hidden');
+    renderMultiMonthCalendar(year, 1, 12);
+  }
+
+  renderEventsListForMode();
   setupCalendarNav();
   setupAddEventButton();
 }
 
-function renderCalendarHeader(year, month) {
+function setCalendarMode(mode) {
+  AppState.calendarMode = mode;
+  ['month', '6m', 'year'].forEach(m => {
+    document.getElementById(`cal-mode-${m}`)?.classList.toggle('selected', m === mode);
+  });
+  renderCalendar();
+}
+
+function setupCalendarSelectors(currYear, currMonth) {
+  const monthSelect = document.getElementById('cal-month-select');
+  const yearSelect = document.getElementById('cal-year-select');
+  if (!monthSelect || !yearSelect) return;
+
   const monthNames = ['January','February','March','April','May','June',
     'July','August','September','October','November','December'];
-  document.getElementById('cal-month-year').textContent = `${monthNames[month-1]} ${year}`;
+
+  if (monthSelect.children.length === 0) {
+    monthSelect.innerHTML = monthNames.map((m, idx) => 
+      `<option value="${idx + 1}">${m}</option>`
+    ).join('');
+
+    monthSelect.addEventListener('change', () => {
+      AppState.calendarMonth = parseInt(monthSelect.value);
+      renderCalendar();
+    });
+  }
+  monthSelect.value = currMonth;
+
+  if (yearSelect.children.length === 0) {
+    const years = [2025, 2026, 2027, 2028];
+    yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    yearSelect.addEventListener('change', () => {
+      AppState.calendarYear = parseInt(yearSelect.value);
+      renderCalendar();
+    });
+  }
+  yearSelect.value = currYear;
 }
 
 function renderCalendarGrid(year, month) {
@@ -664,19 +716,16 @@ function renderCalendarGrid(year, month) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstDayOfWeek = new Date(year, month - 1, 1).getDay(); // 0=Sun
 
-  // Get special days
   const festivals = FestivalsUtil.getSpecialDays(year, month);
   const userEvents = EventsManager.getEventsForMonth(year, month);
   const userEventDates = new Set(userEvents.map(e => e.date));
 
   let html = '';
 
-  // Empty cells for days before month start
   for (let i = 0; i < firstDayOfWeek; i++) {
     html += `<div class="cal-day empty"></div>`;
   }
 
-  // Day cells
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isTodayD = dateStr === today;
@@ -707,6 +756,163 @@ function renderCalendarGrid(year, month) {
   }
 
   grid.innerHTML = html;
+}
+
+function renderMultiMonthCalendar(startYear, startMonth, monthCount) {
+  const container = document.getElementById('multi-month-container');
+  if (!container) return;
+
+  const monthNames = ['January','February','March','April','May','June',
+    'July','August','September','October','November','December'];
+  const today = new Date().toISOString().split('T')[0];
+
+  let html = '';
+  let y = startYear;
+  let m = startMonth;
+
+  for (let i = 0; i < monthCount; i++) {
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const firstDayOfWeek = new Date(y, m - 1, 1).getDay();
+
+    const festivals = FestivalsUtil.getSpecialDays(y, m);
+    const userEvents = EventsManager.getEventsForMonth(y, m);
+    const userEventDates = new Set(userEvents.map(e => e.date));
+
+    let daysHtml = '';
+    for (let k = 0; k < firstDayOfWeek; k++) {
+      daysHtml += `<div class="cal-day empty"></div>`;
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isTodayD = dateStr === today;
+      const isSundayD = FestivalsUtil.isSunday(dateStr);
+      const isFridayD = FestivalsUtil.isFriday(dateStr);
+      const isFest = !!festivals[dateStr];
+      const hasUserEvent = userEventDates.has(dateStr);
+      const isSelected = dateStr === AppState.selectedCalDate;
+
+      const classes = [
+        'cal-day',
+        isTodayD ? 'today' : '',
+        isSelected ? 'selected' : '',
+        isSundayD ? 'sunday' : '',
+        isFridayD ? 'friday' : '',
+        isFest ? 'holiday' : '',
+        hasUserEvent ? 'has-event' : '',
+      ].filter(Boolean).join(' ');
+
+      const festInfo = festivals[dateStr];
+      const festEmoji = festInfo ? festInfo[0].emoji : (isSundayD ? '🔴' : (isFridayD ? '🟡' : ''));
+
+      daysHtml += `
+        <div class="${classes}" data-date="${dateStr}" onclick="onCalDayClick('${dateStr}')">
+          <span>${d}</span>
+          ${festEmoji ? `<span style="font-size:7px;line-height:1;">${festEmoji}</span>` : ''}
+        </div>`;
+    }
+
+    html += `
+      <div class="glass-card" style="padding:14px;border-radius:14px;">
+        <div class="row row-between mb-2">
+          <span class="font-bold text-accent text-sm">${monthNames[m - 1]} ${y}</span>
+          <button class="btn btn-glass btn-sm" style="padding:3px 8px;font-size:11px;" onclick="jumpToSingleMonth(${y}, ${m})">View Month</button>
+        </div>
+        <div class="calendar-grid mb-1" style="font-size:10px;">
+          <div class="cal-day-header">S</div><div class="cal-day-header">M</div><div class="cal-day-header">T</div>
+          <div class="cal-day-header">W</div><div class="cal-day-header">T</div><div class="cal-day-header">F</div><div class="cal-day-header">S</div>
+        </div>
+        <div class="calendar-grid">${daysHtml}</div>
+      </div>`;
+
+    m++;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+  }
+
+  container.innerHTML = html;
+}
+
+function jumpToSingleMonth(year, month) {
+  AppState.calendarYear = year;
+  AppState.calendarMonth = month;
+  setCalendarMode('month');
+}
+
+function renderEventsListForMode() {
+  const container = document.getElementById('month-events-list');
+  const titleEl = document.getElementById('events-section-title');
+  const subtitleEl = document.getElementById('events-range-subtitle');
+  if (!container) return;
+
+  let festivals = [];
+  let userEvents = [];
+
+  const currYear = AppState.calendarYear;
+  const currMonth = AppState.calendarMonth;
+
+  if (AppState.calendarMode === 'month') {
+    festivals = FestivalsUtil.getEventsForMonth(currYear, currMonth);
+    userEvents = EventsManager.getEventsForMonth(currYear, currMonth);
+    if (titleEl) titleEl.textContent = `📌 Events for ${document.getElementById('cal-month-select')?.selectedOptions[0]?.text || ''} ${currYear}`;
+    if (subtitleEl) subtitleEl.textContent = 'Selected Month';
+  } else if (AppState.calendarMode === '6m') {
+    const today = new Date();
+    festivals = FestivalsUtil.getEventsForNextNMonths(today, 6);
+    userEvents = EventsManager.getAllEvents().filter(e => {
+      const d = new Date(e.date);
+      const sixMonthsOut = new Date(today);
+      sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6);
+      return d >= today && d <= sixMonthsOut;
+    });
+    if (titleEl) titleEl.textContent = `📌 Upcoming Festivals & Public Holidays`;
+    if (subtitleEl) subtitleEl.textContent = 'Next 6 Months Auto-Timeline';
+  } else if (AppState.calendarMode === 'year') {
+    festivals = FestivalsUtil.getEventsForYear(currYear);
+    userEvents = EventsManager.getAllEvents().filter(e => e.date && e.date.startsWith(String(currYear)));
+    if (titleEl) titleEl.textContent = `📌 Full Year Calendar: ${currYear}`;
+    if (subtitleEl) subtitleEl.textContent = `All Holidays & Festivals in ${currYear}`;
+  }
+
+  const all = [
+    ...festivals.map(f => ({ ...f, type: f.type, source: 'festival' })),
+    ...userEvents.map(e => ({ ...e, source: 'user' }))
+  ].sort((a,b) => a.date.localeCompare(b.date));
+
+  if (!all.length) {
+    UI.empty(container, '🌸', 'No events in this period', 'No public holidays or saved events found');
+    return;
+  }
+
+  container.innerHTML = all.map(e => {
+    const arp = ARPCalc.computeARP(e.date);
+    return `
+      <div class="glass-card event-card ${e.source === 'festival' ? e.type : 'user-event'}" style="padding:12px 14px;border-radius:12px;margin-bottom:8px;">
+        <div class="card-content">
+          <div class="row row-between">
+            <div class="row row-gap-sm">
+              <span style="font-size:20px;">${e.emoji || '📌'}</span>
+              <div>
+                <p class="text-sm font-bold text-primary">${e.name}</p>
+                <p class="text-xs text-muted">${formatDateDisplay(e.date)}</p>
+              </div>
+            </div>
+            ${e.source === 'festival'
+              ? `<span class="badge badge-warning" style="font-size:10px;">${e.type}</span>`
+              : `<span class="badge badge-accent" style="font-size:10px;">My Event</span>`}
+          </div>
+          ${arp ? `
+            <div class="row row-between mt-2 pt-2" style="border-top:1px solid var(--glass-border);font-size:11px;">
+              <span class="text-muted">ARP Opens: <strong class="text-accent">${arp.arpDateStr}</strong></span>
+              <span class="badge ${arp.isOpened ? 'badge-success' : 'badge-warning'}" style="font-size:9px;">
+                ${arp.isOpened ? '🟢 Open Now' : ARPCalc.formatCountdownShort(arp.countdown)}
+              </span>
+            </div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function onCalDayClick(dateStr) {
@@ -1033,3 +1239,5 @@ window.switchTab = switchTab;
 window.searchTrains = searchTrains;
 window.checkPNR = checkPNR;
 window.openTrainDetail = openTrainDetail;
+window.setCalendarMode = setCalendarMode;
+window.jumpToSingleMonth = jumpToSingleMonth;

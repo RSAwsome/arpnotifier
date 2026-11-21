@@ -421,30 +421,45 @@
         <!-- Calendar Header -->
         <div class="glass-card">
           <div class="card-content">
-            <div class="section-pill">📅 Festival & ARP Calendar</div>
+            <div class="row row-between mb-2">
+              <div class="section-pill mb-0">📅 Festival & ARP Calendar</div>
+              <!-- View Mode Toggles: Month / Next 6 Months / Full Year -->
+              <div class="chips-row" style="padding-bottom:0;">
+                <button type="button" class="chip selected" id="cal-mode-month" onclick="setCalendarMode('month')">Month</button>
+                <button type="button" class="chip" id="cal-mode-6m" onclick="setCalendarMode('6m')">Next 6M</button>
+                <button type="button" class="chip" id="cal-mode-year" onclick="setCalendarMode('year')">Full Year</button>
+              </div>
+            </div>
 
             <!-- Month navigation -->
-            <div class="row row-between mt-2 mb-4" style="align-items:center;">
+            <div class="row row-between mt-2 mb-4" id="cal-nav-bar" style="align-items:center;">
               <button id="cal-prev" class="icon-btn" aria-label="Previous month">‹</button>
-              <div class="text-center">
-                <p class="text-lg font-bold text-primary" id="cal-month-year">—</p>
+              <div class="row row-gap-sm" style="align-items:center;">
+                <select id="cal-month-select" class="input-field" style="padding:6px 10px;font-size:14px;font-weight:700;width:auto;"></select>
+                <select id="cal-year-select" class="input-field" style="padding:6px 10px;font-size:14px;font-weight:700;width:auto;"></select>
               </div>
               <button id="cal-next" class="icon-btn" aria-label="Next month">›</button>
             </div>
 
-            <!-- Day headers -->
-            <div class="calendar-grid mb-1">
-              <div class="cal-day-header">Sun</div>
-              <div class="cal-day-header">Mon</div>
-              <div class="cal-day-header">Tue</div>
-              <div class="cal-day-header">Wed</div>
-              <div class="cal-day-header">Thu</div>
-              <div class="cal-day-header">Fri</div>
-              <div class="cal-day-header">Sat</div>
+            <!-- Single Month View (Default) -->
+            <div id="month-view-container">
+              <!-- Day headers -->
+              <div class="calendar-grid mb-1">
+                <div class="cal-day-header">Sun</div>
+                <div class="cal-day-header">Mon</div>
+                <div class="cal-day-header">Tue</div>
+                <div class="cal-day-header">Wed</div>
+                <div class="cal-day-header">Thu</div>
+                <div class="cal-day-header">Fri</div>
+                <div class="cal-day-header">Sat</div>
+              </div>
+
+              <!-- Calendar days -->
+              <div id="calendar-grid" class="calendar-grid"></div>
             </div>
 
-            <!-- Calendar days -->
-            <div id="calendar-grid" class="calendar-grid"></div>
+            <!-- Multi-Month / Yearly View Container (shown when 6M or Full Year is selected) -->
+            <div id="multi-month-container" class="stack stack-lg hidden"></div>
 
             <!-- Legend -->
             <div class="legend-row mt-3">
@@ -455,23 +470,26 @@
             </div>
 
             <!-- Today button -->
-            <button id="cal-today" class="btn btn-glass btn-sm w-full mt-3">📍 Jump to Today</button>
+            <button id="cal-today" class="btn btn-glass btn-sm w-full mt-3">📍 Jump to Current Month</button>
           </div>
         </div>
 
         <!-- Selected Date Details -->
         <div id="cal-date-details" class="hidden"></div>
 
-        <!-- This Month Events -->
+        <!-- Upcoming Festivals & Events Timeline (Auto Next 6 Months / Year) -->
         <div>
-          <div class="section-pill">📌 This Month's Highlights</div>
+          <div class="row row-between mb-2">
+            <span class="section-pill mb-0" id="events-section-title">📌 Upcoming Festivals & Public Holidays</span>
+            <span class="text-xs text-muted" id="events-range-subtitle">Next 6 Months</span>
+          </div>
           <div id="month-events-list" class="stack stack-sm mt-2"></div>
         </div>
 
         <!-- All My Events -->
         <div>
           <div class="section-header">
-            <span class="section-pill">🗂️ All My Events</span>
+            <span class="section-pill">🗂️ All My Saved Events</span>
             <button class="section-action" onclick="openAddEventModal(null)">+ Add</button>
           </div>
           <div id="all-events-list" class="stack stack-sm"></div>
