@@ -341,115 +341,155 @@
       </div>
     </div>
 
-    <!-- ─── TAB 2: TRAIN SEARCH ─── -->
+    <!-- ─── TAB 2: TRAIN BOARDING & ARP CALCULATOR ─── -->
     <div id="tab-trains" class="tab-panel" role="tabpanel">
       <div class="stack stack-xl stagger-children">
 
-        <!-- Search Header -->
+        <!-- Header -->
         <div class="hero-card" style="padding:16px 18px;">
           <div class="hero-content">
-            <div class="text-xs font-semibold uppercase tracking-wide mb-1" style="opacity:0.75;">🚆 Train Search & ARP</div>
-            <p class="text-xl font-black tracking-tight">Find Trains & Check</p>
-            <p class="text-xl font-black tracking-tight">Booking Windows</p>
+            <div class="row row-between mb-1">
+              <span class="text-xs font-semibold uppercase tracking-wide" style="opacity:0.8;">🚆 Train ARP & Boarding Tracker</span>
+              <span class="badge" style="background:rgba(255,255,255,0.2);color:white;font-size:10px;">LIVE API</span>
+            </div>
+            <p class="text-xl font-black tracking-tight">Accurate ARP by Origin Date</p>
+            <p class="text-xs mt-1" style="opacity:0.85;">Calculates 60-day opening window based on train departure day vs boarding day</p>
           </div>
         </div>
 
-        <!-- Train Search Form -->
+        <!-- Train Number Input Card -->
         <div class="glass-card">
           <div class="card-content">
-            <div class="section-pill">🔍 Search Trains</div>
-            <form id="train-search-form">
-              <div class="stack stack-md mt-2">
-                <!-- From / Swap / To -->
-                <div class="relative">
-                  <div class="input-group">
-                    <label class="input-label" for="from-station">From Station</label>
-                    <input type="text" id="from-station" class="input-field" placeholder="e.g. SC, HYB, NDLS" autocomplete="off" />
-                  </div>
-                  <div id="from-suggestions" class="suggestions-box hidden"></div>
+            <div class="section-pill">🚆 Step 1: Enter Train Number</div>
+            <form id="train-number-form" class="mt-2">
+              <div class="input-group mb-3">
+                <label class="input-label" for="train-number-input">Train Number (5 digits)</label>
+                <div style="display:flex;gap:8px;">
+                  <input type="tel" id="train-number-input" class="input-field font-mono text-lg font-bold"
+                    placeholder="e.g. 12723 or 12625" maxlength="5" pattern="[0-9]{5}" inputmode="numeric" required />
+                  <button type="submit" id="fetch-train-btn" class="btn btn-primary" style="white-space:nowrap;padding:0 18px;">
+                    <span>Fetch Route →</span>
+                  </button>
                 </div>
-
-                <div class="row row-center">
-                  <button type="button" id="swap-stations" class="icon-btn" style="width:36px;height:36px;" aria-label="Swap stations">⇅</button>
-                </div>
-
-                <div class="relative">
-                  <div class="input-group">
-                    <label class="input-label" for="to-station">To Station</label>
-                    <input type="text" id="to-station" class="input-field" placeholder="e.g. BZA, VSKP, NDLS" autocomplete="off" />
-                  </div>
-                  <div id="to-suggestions" class="suggestions-box hidden"></div>
-                </div>
-
-                <!-- Date -->
-                <div class="input-group">
-                  <label class="input-label" for="train-date">Date of Journey</label>
-                  <input type="date" id="train-date" class="input-field" required />
-                </div>
-
-                <!-- Class & Quota -->
-                <div class="grid-2">
-                  <div class="input-group">
-                    <label class="input-label" for="train-class">Class</label>
-                    <select id="train-class" class="input-field">
-                      <option value="SL">SL - Sleeper</option>
-                      <option value="3A">3A - Third AC</option>
-                      <option value="2A">2A - Second AC</option>
-                      <option value="1A">1A - First AC</option>
-                      <option value="CC">CC - Chair Car</option>
-                      <option value="EC">EC - Exec Chair</option>
-                      <option value="2S">2S - Second Sitting</option>
-                    </select>
-                  </div>
-                  <div class="input-group">
-                    <label class="input-label" for="train-quota">Quota</label>
-                    <select id="train-quota" class="input-field">
-                      <option value="GN">General</option>
-                      <option value="TQ">Tatkal</option>
-                      <option value="PT">Prem. Tatkal</option>
-                      <option value="LD">Ladies</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-full">
-                  🔍 Search Trains
-                </button>
               </div>
             </form>
+
+            <!-- Quick Train Suggestions -->
+            <div>
+              <p class="text-xs text-muted mb-2 font-semibold">Popular Trains (tap to load):</p>
+              <div class="chips-row" style="padding-bottom:4px;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="chip train-quick-chip" data-train="12723">12723 Telangana Exp</button>
+                <button type="button" class="chip train-quick-chip" data-train="12625">12625 Kerala Exp</button>
+                <button type="button" class="chip train-quick-chip" data-train="20701">20701 Vande Bharat</button>
+                <button type="button" class="chip train-quick-chip" data-train="12760">12760 Charminar Exp</button>
+                <button type="button" class="chip train-quick-chip" data-train="12951">12951 Mumbai Rajdhani</button>
+                <button type="button" class="chip train-quick-chip" data-train="22691">22691 SBC Rajdhani</button>
+                <button type="button" class="chip train-quick-chip" data-train="12301">12301 Howrah Rajdhani</button>
+              </div>
+            </div>
+
+            <!-- Loading status -->
+            <div id="train-loading-status" class="hidden mt-3 text-center" style="padding:16px;">
+              <div class="spinner" style="margin:0 auto 10px;"></div>
+              <p class="text-sm font-semibold text-primary" id="train-loading-text">Fetching train schedule & boarding points...</p>
+              <p class="text-xs text-muted">Checking Indian Railways route database</p>
+            </div>
+
+            <!-- Error container -->
+            <div id="train-error-status" class="hidden mt-3" style="padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:12px;">
+              <div class="row row-gap-sm">
+                <span>⚠️</span>
+                <p class="text-xs text-danger font-semibold" id="train-error-text">Train not found.</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- ARP for searched date -->
-        <div id="search-arp-info"></div>
-
-        <!-- Results -->
-        <div id="train-results-section" class="hidden">
-          <div class="section-header">
-            <span class="section-pill">🚂 Results</span>
+        <!-- Train Details & Boarding Selection (Revealed once fetched) -->
+        <div id="train-schedule-section" class="hidden stack stack-md">
+          
+          <!-- Train Summary Banner -->
+          <div class="hero-card" style="padding:16px 18px;background:linear-gradient(135deg, rgba(30,27,75,0.9), rgba(67,56,202,0.8));">
+            <div class="hero-content">
+              <div class="row row-between mb-2">
+                <span class="badge badge-accent font-mono" id="disp-train-number">12723</span>
+                <span class="text-xs text-muted" id="disp-train-type">EXPRESS</span>
+              </div>
+              <h2 class="text-lg font-black tracking-tight mb-2" id="disp-train-name">Telangana SF Express</h2>
+              <div class="row row-gap-md" style="align-items:center;">
+                <div>
+                  <p class="text-xs" style="opacity:0.75;">ORIGIN (Day 1)</p>
+                  <p class="font-bold text-sm" id="disp-train-origin">Hyderabad Decan (HYB)</p>
+                </div>
+                <div style="opacity:0.75;font-size:18px;">➔</div>
+                <div>
+                  <p class="text-xs" style="opacity:0.75;">DESTINATION</p>
+                  <p class="font-bold text-sm" id="disp-train-destination">New Delhi (NDLS)</p>
+                </div>
+              </div>
+              <p class="text-xs mt-2" style="opacity:0.75;" id="disp-train-stats">18 Stops • 1683 km • Runs across 2 Days</p>
+            </div>
           </div>
-          <div id="train-results" class="stack stack-sm"></div>
+
+          <!-- Step 2: Select Boarding Point and Boarding Date -->
+          <div class="glass-card">
+            <div class="card-content">
+              <div class="section-pill">📍 Step 2: Select Boarding Station & Date</div>
+              
+              <div class="stack stack-md mt-2">
+                <!-- Boarding Station Dropdown -->
+                <div class="input-group">
+                  <label class="input-label" for="train-boarding-select">Boarding Station (with Day & Timings)</label>
+                  <select id="train-boarding-select" class="input-field font-mono" style="font-size:13px;padding:12px 10px;">
+                    <!-- Populated dynamically -->
+                  </select>
+                </div>
+
+                <!-- Boarding Date Input -->
+                <div class="input-group">
+                  <label class="input-label" for="train-boarding-date">Your Boarding Date (at selected station)</label>
+                  <input type="date" id="train-boarding-date" class="input-field" required />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Exact ARP Calculation Display -->
+          <div id="boarding-arp-card" class="stack stack-md">
+            <!-- Dynamically rendered by JS -->
+          </div>
+
+          <!-- Collapsible Complete Route Timeline -->
+          <div class="glass-card">
+            <div class="card-content">
+              <div class="row row-between" style="cursor:pointer;" id="toggle-route-btn">
+                <div class="section-pill mb-0">🗺️ View Station Route & Stops (<span id="route-stops-count">0</span>)</div>
+                <span id="route-toggle-icon" class="text-xs text-muted font-bold">▼ Show</span>
+              </div>
+              <div id="train-full-route" class="hidden mt-3 stack stack-sm" style="max-height:350px;overflow-y:auto;">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Popular Trains -->
-        <div>
-          <div class="section-pill">⭐ Popular Trains (South India)</div>
-          <div id="popular-trains-list" class="stack stack-sm mt-2">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
-
-        <!-- PNR Status -->
+        <!-- PNR Status Card (Freely fetched on backend without redirect) -->
         <div class="glass-card">
           <div class="card-content">
-            <div class="section-pill">📋 PNR Status</div>
-            <form id="pnr-form" class="mt-2">
+            <div class="section-pill">📋 Live PNR Status (No Redirect)</div>
+            <p class="text-xs text-secondary mt-1 mb-3">Live backend PNR enquiry powered by ConfirmTkt API:</p>
+            <form id="pnr-form">
               <div class="input-group mb-3">
                 <label class="input-label" for="pnr-input">10-Digit PNR Number</label>
-                <input type="tel" id="pnr-input" class="input-field font-mono"
-                  placeholder="e.g. 1234567890" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" />
+                <div style="display:flex;gap:8px;">
+                  <input type="tel" id="pnr-input" class="input-field font-mono text-lg font-bold"
+                    placeholder="Enter 10 digits" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" required />
+                  <button type="submit" id="pnr-submit-btn" class="btn btn-primary" style="white-space:nowrap;padding:0 18px;">
+                    <span>Check PNR</span>
+                  </button>
+                </div>
               </div>
-              <button type="submit" class="btn btn-primary btn-full">📋 Check PNR Status</button>
             </form>
             <div id="pnr-result" class="hidden mt-3"></div>
           </div>

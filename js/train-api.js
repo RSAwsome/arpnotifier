@@ -26,6 +26,417 @@ const QUOTA_TYPES = [
 /* ── Rich Railway Timetable & Stops Database ── */
 const TRAIN_DATABASE = [
   {
+  "number": "12625",
+  "name": "Kerala SF Express",
+  "type": "SUPERFAST",
+  "runDays": "1111111",
+  "classes": [
+    "SL",
+    "3A",
+    "2A",
+    "1A"
+  ],
+  "stops": [
+    {
+      "station_code": "TVC",
+      "station_name": "Trivandrum Cntl",
+      "distance_km": 0,
+      "arrival_time": null,
+      "departure_time": "12:15",
+      "halt_time": "0m",
+      "day": 1
+    },
+    {
+      "station_code": "VAK",
+      "station_name": "Varkalasivagiri",
+      "distance_km": 41,
+      "arrival_time": "12:51",
+      "departure_time": "12:52",
+      "halt_time": "1m",
+      "day": 1
+    },
+    {
+      "station_code": "QLN",
+      "station_name": "Kollam Jn",
+      "distance_km": 65,
+      "arrival_time": "13:15",
+      "departure_time": "13:18",
+      "halt_time": "3m",
+      "day": 1
+    },
+    {
+      "station_code": "KYJ",
+      "station_name": "Kayankulam Jn",
+      "distance_km": 106,
+      "arrival_time": "13:51",
+      "departure_time": "13:53",
+      "halt_time": "2m",
+      "day": 1
+    },
+    {
+      "station_code": "MVLK",
+      "station_name": "Mavelikara",
+      "distance_km": 114,
+      "arrival_time": "14:02",
+      "departure_time": "14:03",
+      "halt_time": "1m",
+      "day": 1
+    },
+    {
+      "station_code": "CNGR",
+      "station_name": "Chengannur",
+      "distance_km": 126,
+      "arrival_time": "14:15",
+      "departure_time": "14:17",
+      "halt_time": "2m",
+      "day": 1
+    },
+    {
+      "station_code": "TRVL",
+      "station_name": "Tiruvalla",
+      "distance_km": 135,
+      "arrival_time": "14:26",
+      "departure_time": "14:27",
+      "halt_time": "1m",
+      "day": 1
+    },
+    {
+      "station_code": "CGY",
+      "station_name": "Changanaseri",
+      "distance_km": 143,
+      "arrival_time": "14:35",
+      "departure_time": "14:36",
+      "halt_time": "1m",
+      "day": 1
+    },
+    {
+      "station_code": "KTYM",
+      "station_name": "Kottayam",
+      "distance_km": 161,
+      "arrival_time": "14:55",
+      "departure_time": "15:00",
+      "halt_time": "5m",
+      "day": 1
+    },
+    {
+      "station_code": "VARD",
+      "station_name": "Vaikom",
+      "distance_km": 186,
+      "arrival_time": "15:23",
+      "departure_time": "15:24",
+      "halt_time": "1m",
+      "day": 1
+    },
+    {
+      "station_code": "ERN",
+      "station_name": "Ernakulam Town",
+      "distance_km": 223,
+      "arrival_time": "16:05",
+      "departure_time": "16:10",
+      "halt_time": "5m",
+      "day": 1
+    },
+    {
+      "station_code": "AWY",
+      "station_name": "Aluva",
+      "distance_km": 240,
+      "arrival_time": "16:30",
+      "departure_time": "16:32",
+      "halt_time": "2m",
+      "day": 1
+    },
+    {
+      "station_code": "TCR",
+      "station_name": "Thrisur",
+      "distance_km": 295,
+      "arrival_time": "17:27",
+      "departure_time": "17:30",
+      "halt_time": "3m",
+      "day": 1
+    },
+    {
+      "station_code": "OTP",
+      "station_name": "Ottappalam",
+      "distance_km": 340,
+      "arrival_time": "18:44",
+      "departure_time": "18:45",
+      "halt_time": "1m",
+      "day": 1
+    },
+    {
+      "station_code": "PGT",
+      "station_name": "Palakkad Jn",
+      "distance_km": 372,
+      "arrival_time": "19:12",
+      "departure_time": "19:15",
+      "halt_time": "3m",
+      "day": 1
+    },
+    {
+      "station_code": "CBE",
+      "station_name": "Coimbatore Jn",
+      "distance_km": 426,
+      "arrival_time": "20:50",
+      "departure_time": "20:55",
+      "halt_time": "5m",
+      "day": 1
+    },
+    {
+      "station_code": "TUP",
+      "station_name": "Tiruppur",
+      "distance_km": 476,
+      "arrival_time": "21:40",
+      "departure_time": "21:45",
+      "halt_time": "5m",
+      "day": 1
+    },
+    {
+      "station_code": "ED",
+      "station_name": "Erode Jn",
+      "distance_km": 527,
+      "arrival_time": "22:30",
+      "departure_time": "22:40",
+      "halt_time": "10m",
+      "day": 1
+    },
+    {
+      "station_code": "SA",
+      "station_name": "Salem Jn",
+      "distance_km": 589,
+      "arrival_time": "23:30",
+      "departure_time": "23:35",
+      "halt_time": "5m",
+      "day": 1
+    },
+    {
+      "station_code": "JTJ",
+      "station_name": "Jolarpettai",
+      "distance_km": 709,
+      "arrival_time": "01:30",
+      "departure_time": "01:35",
+      "halt_time": "5m",
+      "day": 2
+    },
+    {
+      "station_code": "KPD",
+      "station_name": "Katpadi Jn",
+      "distance_km": 793,
+      "arrival_time": "02:50",
+      "departure_time": "02:55",
+      "halt_time": "5m",
+      "day": 2
+    },
+    {
+      "station_code": "CTO",
+      "station_name": "Chittoor",
+      "distance_km": 826,
+      "arrival_time": "03:28",
+      "departure_time": "03:30",
+      "halt_time": "2m",
+      "day": 2
+    },
+    {
+      "station_code": "TPTY",
+      "station_name": "Tirupati",
+      "distance_km": 897,
+      "arrival_time": "04:45",
+      "departure_time": "04:50",
+      "halt_time": "5m",
+      "day": 2
+    },
+    {
+      "station_code": "RU",
+      "station_name": "Renigunta Jn",
+      "distance_km": 907,
+      "arrival_time": "05:10",
+      "departure_time": "05:20",
+      "halt_time": "10m",
+      "day": 2
+    },
+    {
+      "station_code": "GDR",
+      "station_name": "Gudur Jn",
+      "distance_km": 990,
+      "arrival_time": "06:40",
+      "departure_time": "06:42",
+      "halt_time": "2m",
+      "day": 2
+    },
+    {
+      "station_code": "NLR",
+      "station_name": "Nellore",
+      "distance_km": 1029,
+      "arrival_time": "07:13",
+      "departure_time": "07:15",
+      "halt_time": "2m",
+      "day": 2
+    },
+    {
+      "station_code": "BZA",
+      "station_name": "Vijayawada Jn",
+      "distance_km": 1283,
+      "arrival_time": "10:45",
+      "departure_time": "10:55",
+      "halt_time": "10m",
+      "day": 2
+    },
+    {
+      "station_code": "WL",
+      "station_name": "Warangal",
+      "distance_km": 1490,
+      "arrival_time": "13:40",
+      "departure_time": "13:45",
+      "halt_time": "5m",
+      "day": 2
+    },
+    {
+      "station_code": "RDM",
+      "station_name": "Ramagundam",
+      "distance_km": 1591,
+      "arrival_time": "15:14",
+      "departure_time": "15:15",
+      "halt_time": "1m",
+      "day": 2
+    },
+    {
+      "station_code": "SKZR",
+      "station_name": "Sirpur Kagazngr",
+      "distance_km": 1663,
+      "arrival_time": "17:14",
+      "departure_time": "17:15",
+      "halt_time": "1m",
+      "day": 2
+    },
+    {
+      "station_code": "BPQ",
+      "station_name": "Balharshah",
+      "distance_km": 1733,
+      "arrival_time": "18:10",
+      "departure_time": "18:15",
+      "halt_time": "5m",
+      "day": 2
+    },
+    {
+      "station_code": "CD",
+      "station_name": "Chandrapur",
+      "distance_km": 1747,
+      "arrival_time": "18:30",
+      "departure_time": "18:32",
+      "halt_time": "2m",
+      "day": 2
+    },
+    {
+      "station_code": "SEGM",
+      "station_name": "Sevagram",
+      "distance_km": 1868,
+      "arrival_time": "20:03",
+      "departure_time": "20:05",
+      "halt_time": "2m",
+      "day": 2
+    },
+    {
+      "station_code": "NGP",
+      "station_name": "Nagpur",
+      "distance_km": 1944,
+      "arrival_time": "21:10",
+      "departure_time": "21:15",
+      "halt_time": "5m",
+      "day": 2
+    },
+    {
+      "station_code": "ET",
+      "station_name": "Itarsi Jn",
+      "distance_km": 2241,
+      "arrival_time": "02:05",
+      "departure_time": "02:10",
+      "halt_time": "5m",
+      "day": 3
+    },
+    {
+      "station_code": "BPL",
+      "station_name": "Bhopal  Jn",
+      "distance_km": 2339,
+      "arrival_time": "03:45",
+      "departure_time": "03:55",
+      "halt_time": "10m",
+      "day": 3
+    },
+    {
+      "station_code": "BINA",
+      "station_name": "Bina Jn",
+      "distance_km": 2478,
+      "arrival_time": "05:40",
+      "departure_time": "05:45",
+      "halt_time": "5m",
+      "day": 3
+    },
+    {
+      "station_code": "VGLJ",
+      "station_name": "V Lakshmibai Jhansi Jhs",
+      "distance_km": 2630,
+      "arrival_time": "07:25",
+      "departure_time": "07:30",
+      "halt_time": "5m",
+      "day": 3
+    },
+    {
+      "station_code": "GWL",
+      "station_name": "Gwalior",
+      "distance_km": 2727,
+      "arrival_time": "08:40",
+      "departure_time": "08:42",
+      "halt_time": "2m",
+      "day": 3
+    },
+    {
+      "station_code": "AGC",
+      "station_name": "Agra Cantt",
+      "distance_km": 2846,
+      "arrival_time": "10:10",
+      "departure_time": "10:15",
+      "halt_time": "5m",
+      "day": 3
+    },
+    {
+      "station_code": "MTJ",
+      "station_name": "Mathura Jn",
+      "distance_km": 2900,
+      "arrival_time": "10:50",
+      "departure_time": "10:52",
+      "halt_time": "2m",
+      "day": 3
+    },
+    {
+      "station_code": "FDB",
+      "station_name": "Faridabad",
+      "distance_km": 3012,
+      "arrival_time": "12:30",
+      "departure_time": "12:32",
+      "halt_time": "2m",
+      "day": 3
+    },
+    {
+      "station_code": "NZM",
+      "station_name": "H Nizamuddin",
+      "distance_km": 3033,
+      "arrival_time": "12:50",
+      "departure_time": "12:52",
+      "halt_time": "2m",
+      "day": 3
+    },
+    {
+      "station_code": "NDLS",
+      "station_name": "New Delhi",
+      "distance_km": 3040,
+      "arrival_time": "13:30",
+      "departure_time": null,
+      "halt_time": "0m",
+      "day": 3
+    }
+  ]
+},
+
+  {
     number: '20701',
     name: 'Vande Bharat Express',
     type: 'VANDE BHARAT',
@@ -655,78 +1066,261 @@ const TRAIN_API = {
     };
   },
 
-  /** Get train schedule / complete route stops */
-  async getTrainSchedule(trainNumber) {
+  /**
+   * Fetches full train schedule & all intermediate boarding points.
+   * Tries local backend API (/api/train/:trainNo), falls back to CORS proxies or local database.
+   */
+  async fetchTrainSchedule(trainNumber) {
     const num = String(trainNumber).trim();
-    const train = TRAIN_DATABASE.find(t => t.number === num);
-    if (train) {
+    if (!num || !/^\d{3,6}$/.test(num)) {
+      return { success: false, error: 'Please enter a valid 5-digit train number.' };
+    }
+
+    // 1. Try relative backend API (/api/train/:trainNo)
+    try {
+      const res = await fetch(`/api/train/${num}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          return { success: true, data: json.data };
+        }
+      }
+    } catch (e) {
+      console.warn('Backend /api/train endpoint failed, trying fallbacks...', e);
+    }
+
+    // 2. Fallback: Check local rich train database
+    const localMatch = TRAIN_DATABASE.find(t => t.number === num);
+    if (localMatch) {
+      const stops = localMatch.stops || [];
       return {
+        success: true,
         data: {
-          train_number: train.number,
-          train_name: train.name,
-          train_type: train.type,
-          stops: train.stops,
-          train_route: train.stops
+          train_number: localMatch.number,
+          train_name: localMatch.name,
+          source_station: stops[0] || null,
+          destination_station: stops[stops.length - 1] || null,
+          total_stations: stops.length,
+          stations: stops
         }
       };
     }
 
-    // Fallback: minimal route structure with ConfirmTkt schedule deep link
-    return {
-      data: {
-        train_number: num,
-        train_name: `Train ${num}`,
-        stops: []
-      }
-    };
-  },
+    // 3. Fallback: Fetch via CORS proxy if running without backend node server
+    const targetUrl = `https://www.confirmtkt.com/train-schedule/${num}`;
+    const corsProxies = [
+      (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      (u) => `https://api.codetabs.com/v1/proxy/?quest=${u}`
+    ];
 
-  /** Get seat availability & ConfirmTkt deep link */
-  async getSeatAvailability(trainNumber, fromCode, toCode, date, classCode = 'SL', quota = 'GN') {
-    // Generate direct ConfirmTkt and IRCTC live verification data
-    const confirmTktUrl = `https://www.confirmtkt.com/trains/${fromCode}-to-${toCode}`;
-    const irctcUrl = `https://www.irctc.co.in/nget/train-search`;
-
-    return {
-      data: [
-        {
-          class_type: classCode,
-          current_status: 'Check Live',
-          available_seats: 1,
-          confirmTktUrl,
-          irctcUrl
+    for (const proxyFn of corsProxies) {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 6000);
+        const pRes = await fetch(proxyFn(targetUrl), { signal: controller.signal });
+        clearTimeout(tid);
+        if (pRes.ok) {
+          const html = await pRes.text();
+          const parsed = this.parseScheduleHtmlClient(html, num);
+          if (parsed && parsed.stations && parsed.stations.length > 0) {
+            return { success: true, data: parsed };
+          }
         }
-      ]
+      } catch (err) {
+        console.warn('Client-side proxy schedule fetch failed:', err);
+      }
+    }
+
+    return {
+      success: false,
+      error: `Train ${num} could not be found. Please verify the train number and try again.`
     };
   },
 
-  /** Check PNR Status via ConfirmTkt */
+  /** Client-side schedule HTML parser (same logic as server) */
+  parseScheduleHtmlClient(html, trainNumber) {
+    let trainName = '';
+    const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+    if (h1Match) {
+      const rawH1 = h1Match[1].replace(/<[^>]+>/g, '').trim();
+      trainName = rawH1.replace(/:\s*Train Route.*$/i, '').trim();
+    }
+
+    const stations = [];
+    const tableMatch = html.match(/<table[^>]*>(.*?)<\/table>/s);
+    if (!tableMatch) return null;
+
+    const rows = tableMatch[0].match(/<tr[^>]*>.*?<\/tr>/gs) || [];
+    let currentDay = 1;
+    let prevMinutes = -1;
+
+    for (const row of rows) {
+      if (row.includes('<th') || !row.includes('railway-stations/')) continue;
+
+      const nameMatch = row.match(/href="\/railway-stations\/[^"]*"[^>]*>\s*<div>(.*?)<\/div>\s*<div>([A-Z0-9]+)\s*-\s*([0-9.]+)km<\/div>/s);
+      if (!nameMatch) continue;
+
+      const stationName = nameMatch[1].trim();
+      const stationCode = nameMatch[2].trim();
+      const distanceKm = parseFloat(nameMatch[3]) || 0;
+
+      const cells = row.match(/<td[^>]*>(.*?)<\/td>/gs) || [];
+      if (cells.length < 3) continue;
+
+      const timingCell = cells[2];
+      const timeDivs = timingCell.match(/<div>(.*?)<\/div>/gs) || [];
+      let arrival = '';
+      let departure = '';
+
+      if (timeDivs.length >= 2) {
+        arrival = timeDivs[0].replace(/<[^>]+>/g, '').trim();
+        departure = timeDivs[1].replace(/<[^>]+>/g, '').trim();
+      } else if (timeDivs.length === 1) {
+        const txt = timeDivs[0].replace(/<[^>]+>/g, '').trim();
+        arrival = txt;
+        departure = txt;
+      }
+
+      let halt = '0m';
+      if (cells.length >= 4) {
+        halt = cells[3].replace(/<[^>]+>/g, '').trim();
+        if (halt === '-') halt = '0m';
+      }
+
+      const effectiveTimeStr = (departure && departure !== 'End') ? departure : arrival;
+      const timeParts = effectiveTimeStr.match(/(\d{1,2}):(\d{2})/);
+      if (timeParts) {
+        const minutes = parseInt(timeParts[1], 10) * 60 + parseInt(timeParts[2], 10);
+        if (prevMinutes !== -1 && minutes < prevMinutes) {
+          currentDay++;
+        }
+        prevMinutes = minutes;
+      }
+
+      stations.push({
+        station_code: stationCode,
+        station_name: stationName,
+        distance_km: distanceKm,
+        arrival_time: arrival === 'Start' ? null : arrival,
+        departure_time: departure === 'End' ? null : departure,
+        halt_time: halt,
+        day: currentDay
+      });
+    }
+
+    if (stations.length === 0) return null;
+
+    return {
+      train_number: trainNumber,
+      train_name: trainName || `Train ${trainNumber}`,
+      source_station: stations[0],
+      destination_station: stations[stations.length - 1],
+      total_stations: stations.length,
+      stations
+    };
+  },
+
+  /** Get train schedule / complete route stops (backwards compatibility) */
+  async getTrainSchedule(trainNumber) {
+    const res = await this.fetchTrainSchedule(trainNumber);
+    if (res.success && res.data) {
+      return {
+        data: {
+          train_number: res.data.train_number,
+          train_name: res.data.train_name,
+          stops: res.data.stations,
+          train_route: res.data.stations
+        }
+      };
+    }
+    return { data: { train_number: trainNumber, train_name: `Train ${trainNumber}`, stops: [] } };
+  },
+
+  /**
+   * Check PNR Status via backend live proxy / public CORS proxies without redirection.
+   * Returns structured live status, coach, berth, confirmation chance, etc.
+   */
   async getPNRStatus(pnr) {
     pnr = String(pnr).trim();
     if (pnr.length !== 10 || !/^\d{10}$/.test(pnr)) {
-      return { error: 'invalid', message: 'PNR must be exactly 10 digits.' };
+      return { success: false, error: 'invalid', message: 'PNR must be exactly 10 numeric digits.' };
     }
 
-    // Decode Indian Railways PRS Zone from initial digit:
-    // 1: SCR (Secunderabad), 2-3: NR/NCR (Delhi), 4-5: SR/SWR/SCR (Chennai/Bangalore), 6-7: WR/CR (Mumbai), 8-9: ER/ECR (Kolkata)
-    const firstDigit = pnr[0];
-    let zone = 'Indian Railways';
-    if (firstDigit === '1') zone = 'Secunderabad (SCR)';
-    else if (firstDigit === '2' || firstDigit === '3') zone = 'Northern / Delhi PRS (NR)';
-    else if (firstDigit === '4' || firstDigit === '5') zone = 'Southern / South Central (SR/SWR/SCR)';
-    else if (firstDigit === '6' || firstDigit === '7') zone = 'Western / Central (WR/CR - Mumbai)';
-    else if (firstDigit === '8' || firstDigit === '9') zone = 'Eastern / South Eastern (ER/SER - Kolkata)';
+    let pnrData = null;
 
-    const confirmTktUrl = `https://www.confirmtkt.com/pnr-status/${pnr}`;
+    // 1. Try local backend proxy
+    try {
+      const res = await fetch(`/api/pnr/${pnr}`);
+      if (res.ok) {
+        pnrData = await res.json();
+      }
+    } catch (err) {
+      console.warn('Backend /api/pnr proxy unavailable, trying fallback proxies...', err);
+    }
+
+    // 2. If backend proxy didn't return data, try public CORS proxies
+    if (!pnrData) {
+      const targetUrl = `https://api.confirmtkt.com/api/pnr/status/${pnr}`;
+      const proxies = [
+        {
+          name: 'corsproxy_io',
+          getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+          parse: async (r) => r.json()
+        },
+        {
+          name: 'codetabs',
+          getUrl: (u) => `https://api.codetabs.com/v1/proxy/?quest=${u}`,
+          parse: async (r) => r.json()
+        },
+        {
+          name: 'allorigins',
+          getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+          parse: async (r) => {
+            const d = await r.json();
+            return JSON.parse(d.contents);
+          }
+        }
+      ];
+
+      for (const p of proxies) {
+        try {
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), 6000);
+          const pRes = await fetch(p.getUrl(targetUrl), { signal: controller.signal });
+          clearTimeout(tid);
+          if (pRes.ok) {
+            const d = await p.parse(pRes);
+            if (d) {
+              pnrData = d;
+              break;
+            }
+          }
+        } catch (e) {
+          console.warn(`Proxy ${p.name} failed:`, e);
+        }
+      }
+    }
+
+    if (!pnrData) {
+      return {
+        success: false,
+        error: 'network_error',
+        message: 'Could not connect to railway PNR server. Please check your internet connection and try again.'
+      };
+    }
+
+    // Check for invalid or flushed PNR
+    if (pnrData.Error || pnrData.ErrorCode === 202 || pnrData.ErrorCode === 201 || !pnrData.TrainNo) {
+      return {
+        success: false,
+        error: 'flushed_or_invalid',
+        message: pnrData.Error || pnrData.InformationMessage || 'This PNR has either expired/flushed from PRS or is not yet generated in the railway database.'
+      };
+    }
 
     return {
       success: true,
-      data: {
-        pnrNumber: pnr,
-        zone,
-        confirmTktUrl,
-        message: 'Tap below to view live ConfirmTkt berth confirmation & coach prediction.'
-      }
+      data: pnrData
     };
   },
 

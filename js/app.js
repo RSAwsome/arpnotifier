@@ -258,381 +258,528 @@ function updateDashboardARP(arp) {
    TAB 2: TRAIN SEARCH
    ═══════════════════════════════════════════════ */
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function setupTrainTab() {
-  // Form setup
-  const trainForm = document.getElementById('train-search-form');
+  const trainForm = document.getElementById('train-number-form');
+  const trainInput = document.getElementById('train-number-input');
+  const boardingSelect = document.getElementById('train-boarding-select');
+  const boardingDateInput = document.getElementById('train-boarding-date');
+  const pnrForm = document.getElementById('pnr-form');
+  const toggleRouteBtn = document.getElementById('toggle-route-btn');
+
   if (trainForm && !trainForm.dataset.setup) {
     trainForm.dataset.setup = '1';
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('train-date').value = today;
-    document.getElementById('train-date').min = today;
-
-    // Auto-suggest for stations
-    setupStationAutocomplete('from-station', 'from-suggestions');
-    setupStationAutocomplete('to-station', 'to-suggestions');
-
+    // Submit handler for Train Number form
     trainForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      await searchTrains();
+      const num = trainInput?.value.trim();
+      if (num) await fetchAndDisplayTrainSchedule(num);
     });
 
-    // PNR form
-    const pnrForm = document.getElementById('pnr-form');
+    // Auto-fetch on typing 5 digits
+    trainInput?.addEventListener('input', async (e) => {
+      const val = e.target.value.trim();
+      if (val.length === 5 && /^\d{5}$/.test(val)) {
+        await fetchAndDisplayTrainSchedule(val);
+      }
+    });
+
+    // Quick train chips
+    const chips = document.querySelectorAll('.train-quick-chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', async () => {
+        const trainNum = chip.dataset.train;
+        if (trainInput) trainInput.value = trainNum;
+        chips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        await fetchAndDisplayTrainSchedule(trainNum);
+      });
+    });
+
+    // Boarding station change handler
+    boardingSelect?.addEventListener('change', () => {
+      calculateAndRenderTrainARP();
+      const stations = AppState.currentTrainSchedule?.stations || [];
+      renderTrainFullRoute(stations, boardingSelect.value);
+    });
+
+    // Boarding date change handler
+    boardingDateInput?.addEventListener('change', () => {
+      calculateAndRenderTrainARP();
+    });
+
+    // Toggle station route list
+    toggleRouteBtn?.addEventListener('click', () => {
+      const routeList = document.getElementById('train-full-route');
+      const toggleIcon = document.getElementById('route-toggle-icon');
+      if (routeList) {
+        const isHidden = routeList.classList.toggle('hidden');
+        if (toggleIcon) toggleIcon.textContent = isHidden ? '▼ Show' : '▲ Hide';
+      }
+    });
+
+    // PNR Form submit
     pnrForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       await checkPNR();
     });
 
-    // Swap button
-    document.getElementById('swap-stations')?.addEventListener('click', () => {
-      const f = document.getElementById('from-station');
-      const t = document.getElementById('to-station');
-      [f.value, t.value] = [t.value, f.value];
-    });
-
-    // Render popular trains
-    renderPopularTrains();
+    // Default: auto-load popular train 12723 (Telangana Express) on first tab visit
+    if (trainInput && !trainInput.value) {
+      trainInput.value = '12723';
+      fetchAndDisplayTrainSchedule('12723');
+    }
   }
 }
 
-function renderPopularTrains() {
-  const listEl = document.getElementById('popular-trains-list');
-  if (!listEl) return;
+/**
+ * Fetches train schedule and all boarding points using live backend / fallback APIs.
+ */
+async function fetchAndDisplayTrainSchedule(trainNumber) {
+  trainNumber = String(trainNumber || '').trim();
+  if (!trainNumber || !/^\d{3,6}$/.test(trainNumber)) {
+    UI.toast('Please enter a valid train number (e.g. 12723)', 'warning');
+    return;
+  }
 
-  const popular = window.POPULAR_TRAINS || [];
-  listEl.innerHTML = popular.slice(0, 8).map(t => `
-    <div class="glass-card stat-card row row-between" style="border-radius:12px;padding:10px 14px;cursor:pointer;" onclick="selectPopularTrain('${t.number}', '${t.from}', '${t.to}')">
+  const loadingEl = document.getElementById('train-loading-status');
+  const errorEl = document.getElementById('train-error-status');
+  const errorTextEl = document.getElementById('train-error-text');
+  const scheduleSection = document.getElementById('train-schedule-section');
+
+  loadingEl?.classList.remove('hidden');
+  errorEl?.classList.add('hidden');
+  scheduleSection?.classList.add('hidden');
+
+  const res = await TRAIN_API.fetchTrainSchedule(trainNumber);
+  loadingEl?.classList.add('hidden');
+
+  if (!res.success || !res.data) {
+    if (errorTextEl) errorTextEl.textContent = res.error || `Train ${trainNumber} not found. Please verify the train number.`;
+    errorEl?.classList.remove('hidden');
+    return;
+  }
+
+  const trainData = res.data;
+  AppState.currentTrainSchedule = trainData;
+
+  // Render Train Banner
+  const dispNum = document.getElementById('disp-train-number');
+  const dispName = document.getElementById('disp-train-name');
+  const dispOrigin = document.getElementById('disp-train-origin');
+  const dispDest = document.getElementById('disp-train-destination');
+  const dispStats = document.getElementById('disp-train-stats');
+
+  if (dispNum) dispNum.textContent = trainData.train_number;
+  if (dispName) dispName.textContent = trainData.train_name;
+
+  const originStn = trainData.source_station || trainData.stations?.[0];
+  const destStn = trainData.destination_station || trainData.stations?.[trainData.stations.length - 1];
+
+  if (dispOrigin) dispOrigin.textContent = originStn ? `${originStn.station_name} (${originStn.station_code})` : 'Origin';
+  if (dispDest) dispDest.textContent = destStn ? `${destStn.station_name} (${destStn.station_code})` : 'Destination';
+
+  const maxDay = destStn?.day || 1;
+  const dist = destStn?.distance_km ? `${destStn.distance_km} km` : 'Complete Route';
+  if (dispStats) {
+    dispStats.textContent = `${trainData.total_stations || trainData.stations?.length} Stops • ${dist} • Runs across ${maxDay} Day(s)`;
+  }
+
+  // Populate Boarding Stations Select
+  const selectEl = document.getElementById('train-boarding-select');
+  if (selectEl) {
+    selectEl.innerHTML = '';
+    (trainData.stations || []).forEach((stn, idx) => {
+      const opt = document.createElement('option');
+      opt.value = stn.station_code;
+      opt.dataset.day = stn.day || 1;
+      opt.dataset.name = stn.station_name;
+      opt.dataset.arr = stn.arrival_time || 'Start';
+      opt.dataset.dep = stn.departure_time || 'End';
+      opt.dataset.dist = stn.distance_km || 0;
+
+      const dayLabel = `Day ${stn.day || 1}`;
+      const timeLabel = stn.departure_time ? `Dep: ${stn.departure_time}` : (stn.arrival_time ? `Arr: ${stn.arrival_time}` : '');
+      opt.textContent = `[${stn.station_code}] ${stn.station_name} — ${dayLabel} • ${timeLabel} • ${stn.distance_km}km`;
+
+      if (idx === 0) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  // Set default Boarding Date
+  const boardingDateInput = document.getElementById('train-boarding-date');
+  if (boardingDateInput) {
+    const today = new Date();
+    const defDate = new Date();
+    defDate.setDate(today.getDate() + 60);
+    const defDateStr = defDate.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+
+    boardingDateInput.min = todayStr;
+    if (!boardingDateInput.value || boardingDateInput.value < todayStr) {
+      boardingDateInput.value = defDateStr;
+    }
+  }
+
+  // Populate Route Timeline
+  renderTrainFullRoute(trainData.stations, selectEl?.value);
+
+  // Show schedule section and calculate ARP
+  scheduleSection?.classList.remove('hidden');
+  calculateAndRenderTrainARP();
+}
+
+/**
+ * Calculates and renders exact ARP opening date based on train origin departure date vs boarding date.
+ */
+function calculateAndRenderTrainARP() {
+  const trainData = AppState.currentTrainSchedule;
+  if (!trainData) return;
+
+  const selectEl = document.getElementById('train-boarding-select');
+  const dateInput = document.getElementById('train-boarding-date');
+  const resultCard = document.getElementById('boarding-arp-card');
+  if (!selectEl || !dateInput || !resultCard) return;
+
+  const selectedOption = selectEl.options[selectEl.selectedIndex];
+  if (!selectedOption) return;
+
+  const stationCode = selectedOption.value;
+  const stationName = selectedOption.dataset.name || stationCode;
+  const stationDay = parseInt(selectedOption.dataset.day || '1', 10);
+  const departureTime = selectedOption.dataset.dep || 'Scheduled Departure';
+  const boardingDateStr = dateInput.value;
+
+  if (!boardingDateStr) {
+    resultCard.innerHTML = `<p class="text-xs text-muted">Please select a valid boarding date.</p>`;
+    return;
+  }
+
+  const originStn = trainData.source_station || trainData.stations?.[0] || { station_name: 'Origin Station', station_code: '' };
+
+  const arp = ARPCalc.computeBoardingARP(boardingDateStr, stationDay);
+  if (!arp) return;
+
+  // Google Calendar URL generator
+  const arpYear = arp.arpDate.getFullYear();
+  const arpMonth = String(arp.arpDate.getMonth() + 1).padStart(2, '0');
+  const arpDay = String(arp.arpDate.getDate()).padStart(2, '0');
+  const calStart = `${arpYear}${arpMonth}${arpDay}T022500Z`;
+  const calEnd   = `${arpYear}${arpMonth}${arpDay}T024500Z`;
+  const calTitle = encodeURIComponent(`IRCTC Booking Opens: Train ${trainData.train_number} (${stationCode})`);
+  const calDesc  = encodeURIComponent(`Indian Railways ARP 60-Day booking opens today at 8:00 AM IST for Train ${trainData.train_number} (${trainData.train_name}). Boarding at ${stationName} on ${arp.boardingDateStr}. Train origin departs on ${arp.originDateStr}.`);
+  const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&dates=${calStart}/${calEnd}&details=${calDesc}`;
+
+  const countdownText = arp.isOpened
+    ? `<span class="badge badge-success" style="font-size:12px;padding:6px 12px;">🟢 BOOKING OPEN NOW</span>`
+    : `<span class="badge badge-warning" style="font-size:12px;padding:6px 12px;">⏳ Opens in ${ARPCalc.formatCountdownShort(arp.countdown)}</span>`;
+
+  resultCard.innerHTML = `
+    <!-- Multi-Day Origin Alert (Crucial for Avoiding Wrong Date) -->
+    ${arp.isMultiDay ? `
+      <div class="glass-card" style="background:rgba(245,158,11,0.12);border:1.5px solid rgba(245,158,11,0.4);border-radius:16px;padding:16px;">
+        <div class="card-content">
+          <div class="row row-gap-sm mb-2" style="align-items:center;">
+            <span style="font-size:18px;">⚠️</span>
+            <span class="text-xs font-bold uppercase tracking-wide" style="color:#fbbf24;">Indian Railways ARP Multi-Day Departure Rule</span>
+          </div>
+          <p class="text-xs text-primary mb-2 leading-relaxed">
+            You are boarding at <strong>${escapeHtml(stationName)} (${escapeHtml(stationCode)})</strong> on <strong class="text-accent">Day ${arp.stationDay}</strong> of the train's journey (${arp.boardingDateShort}).
+          </p>
+          <div style="background:rgba(0,0,0,0.25);border-radius:10px;padding:10px 12px;" class="mb-2">
+            <p class="text-xs" style="color:#fde68a;">
+              🚂 Train <strong>${trainData.train_number}</strong> departs from origin (<strong>${escapeHtml(originStn.station_name)}</strong>) on <strong style="text-decoration:underline;">${arp.originDateShort}</strong> (<span class="font-bold text-accent">${arp.offsetDays} day(s) earlier</span>).
+            </p>
+          </div>
+          <p class="text-xs text-muted leading-relaxed">
+            <strong>Why this matters:</strong> Indian Railways 60-day reservation opens <strong>60 days before the train departs from its originating station</strong>, NOT your intermediate boarding date!
+          </p>
+        </div>
+      </div>
+    ` : `
+      <div class="glass-card" style="background:rgba(52,211,153,0.1);border:1.5px solid rgba(52,211,153,0.3);border-radius:16px;padding:14px;">
+        <div class="card-content">
+          <p class="text-xs text-primary">
+            ✅ <strong>Day 1 Origin Boarding:</strong> Your boarding station is the train starting point. Train departs on your boarding date (<strong>${arp.boardingDateShort}</strong>).
+          </p>
+        </div>
+      </div>
+    `}
+
+    <!-- Main ARP Booking Card -->
+    <div class="glass-card" style="background:var(--accent-glass);border:1.5px solid var(--accent-dim);border-radius:18px;padding:18px;">
       <div class="card-content">
-        <div class="row row-gap-sm">
-          <span class="train-number-badge">${t.number}</span>
+        <div class="row row-between mb-3" style="align-items:flex-start;">
           <div>
-            <p class="text-xs font-bold text-primary">${t.name}</p>
-            <p class="text-xs text-muted">${t.from} → ${t.to} <span class="badge badge-accent" style="font-size:9px;margin-left:4px;">${t.type}</span></p>
+            <span class="text-xs text-muted uppercase tracking-wide font-bold">Ticket Booking Opens On (ARP 60 Days)</span>
+            <p class="text-xl font-black text-accent tracking-tight mt-1" id="calculated-arp-date">${arp.arpDateFull}</p>
+            <p class="text-xs font-semibold text-secondary">at 8:00 AM IST (IRCTC Online & PRS Counters)</p>
+          </div>
+          <div>
+            ${countdownText}
+          </div>
+        </div>
+
+        <!-- Live Countdown Timer -->
+        ${!arp.isOpened ? `
+          <div class="glass-card mb-3" style="padding:14px;background:rgba(0,0,0,0.3);border-radius:12px;">
+            <p class="text-xs text-muted text-center uppercase tracking-wide font-semibold mb-2">Countdown to 8:00 AM Opening</p>
+            <div id="train-live-countdown">${UI.renderCountdown(arp.countdown)}</div>
+          </div>
+        ` : `
+          <div class="glass-card mb-3" style="padding:12px;background:rgba(16,185,129,0.15);border-radius:12px;text-align:center;">
+            <p class="text-xs text-success font-bold">🎉 The 60-day reservation window for this train is currently active!</p>
+          </div>
+        `}
+
+        <!-- Journey Summary Grid -->
+        <div class="grid-2 mt-3 row-gap-md" style="border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">
+          <div>
+            <p class="text-xs text-muted font-semibold">Train Origin Departs (Day 1)</p>
+            <p class="text-sm font-bold text-primary">${arp.originDateShort}</p>
+            <p class="text-xs text-muted">${escapeHtml(originStn.station_name)}</p>
+          </div>
+          <div>
+            <p class="text-xs text-muted font-semibold">Your Boarding (Day ${arp.stationDay})</p>
+            <p class="text-sm font-bold text-accent">${arp.boardingDateShort}</p>
+            <p class="text-xs text-muted">${escapeHtml(stationName)} (${departureTime})</p>
+          </div>
+          <div>
+            <p class="text-xs text-muted font-semibold">Tatkal AC Opens (10 AM)</p>
+            <p class="text-xs font-bold text-primary">${arp.tatkalDateStr} @ 10:00 AM</p>
+          </div>
+          <div>
+            <p class="text-xs text-muted font-semibold">Tatkal Sleeper Opens (11 AM)</p>
+            <p class="text-xs font-bold text-primary">${arp.tatkalDateStr} @ 11:00 AM</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="stack stack-sm mt-4">
+          <div class="grid-2 row-gap-sm">
+            <button type="button" class="btn btn-primary btn-sm text-center" onclick="saveTrainARPEvent('${trainData.train_number}', '${escapeHtml(trainData.train_name)}', '${stationCode}', '${escapeHtml(stationName)}', '${boardingDateStr}', '${arp.originDate.toISOString().split('T')[0]}', '${arp.arpDate.toISOString().split('T')[0]}')">
+              <span>📌 Save as My Event</span>
+            </button>
+            <a href="${gCalUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm text-center" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">
+              <span>📅 Google Calendar</span>
+            </a>
+          </div>
+          <a href="https://www.irctc.co.in/nget/train-search" target="_blank" rel="noopener noreferrer" class="btn btn-accent btn-sm text-center w-full" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
+            <span>🎫 Book Official on IRCTC Portal →</span>
+          </a>
+          <div class="row row-between mt-2 pt-2" style="border-top:1px dashed rgba(255,255,255,0.1);font-size:11px;">
+            <span class="text-muted">Official Verification:</span>
+            <div class="row row-gap-sm">
+              <a href="https://enquiry.indianrail.gov.in/mntes/q?opt=TrainServiceSchedule&subOpt=main&trainNo=${trainData.train_number}" target="_blank" rel="noopener noreferrer" class="text-accent" style="text-decoration:underline;">
+                CRIS NTES Schedule ↗
+              </a>
+              <span class="text-muted">•</span>
+              <a href="https://www.irctc.co.in/nget/booking/check-train-schedule" target="_blank" rel="noopener noreferrer" class="text-accent" style="text-decoration:underline;">
+                IRCTC Timetable ↗
+              </a>
+            </div>
           </div>
         </div>
       </div>
-      <span class="text-accent text-sm font-bold">Search →</span>
     </div>
-  `).join('');
+  `;
+
+  // Start live countdown ticking
+  if (!arp.isOpened) {
+    if (AppState.arpCountdownTimer) clearInterval(AppState.arpCountdownTimer);
+    AppState.arpCountdownTimer = setInterval(() => {
+      const cdEl = document.getElementById('train-live-countdown');
+      if (!cdEl) {
+        clearInterval(AppState.arpCountdownTimer);
+        return;
+      }
+      const updatedCd = ARPCalc.getCountdownToARP(arp.originDate);
+      cdEl.innerHTML = UI.renderCountdown(updatedCd);
+    }, 1000);
+  }
 }
 
-window.selectPopularTrain = function(num, from, to) {
-  document.getElementById('from-station').value = from;
-  document.getElementById('to-station').value = to;
-  searchTrains();
+/**
+ * Renders complete station route timeline.
+ */
+function renderTrainFullRoute(stations, selectedCode) {
+  const container = document.getElementById('train-full-route');
+  const countEl = document.getElementById('route-stops-count');
+  if (!container) return;
+  if (countEl) countEl.textContent = stations.length;
+
+  container.innerHTML = stations.map((stn, idx) => {
+    const isSelected = stn.station_code === selectedCode;
+    return `
+      <div class="glass-card row row-between" style="padding:10px 14px;border-radius:12px;border:${isSelected ? '1.5px solid var(--accent)' : '1px solid var(--glass-border)'};background:${isSelected ? 'var(--accent-glass)' : 'transparent'};cursor:pointer;" onclick="selectRouteStation('${stn.station_code}')">
+        <div class="row row-gap-sm" style="align-items:center;">
+          <span class="font-mono text-xs text-muted" style="width:24px;">${idx + 1}</span>
+          <div>
+            <div class="row row-gap-xs" style="align-items:center;">
+              <span class="font-bold text-sm text-primary">${escapeHtml(stn.station_name)}</span>
+              <span class="font-mono text-xs text-accent font-bold">(${escapeHtml(stn.station_code)})</span>
+              <span class="badge" style="font-size:9px;padding:2px 6px;background:rgba(255,255,255,0.1);">Day ${stn.day}</span>
+            </div>
+            <p class="text-xs text-muted">
+              ${stn.arrival_time ? `Arr: ${stn.arrival_time}` : 'Starts'} • ${stn.departure_time ? `Dep: ${stn.departure_time}` : 'Ends'} • Halt: ${stn.halt_time || '0m'} • ${stn.distance_km} km
+            </p>
+          </div>
+        </div>
+        <div>
+          ${isSelected ? '<span class="badge badge-accent">Selected</span>' : '<button type="button" class="btn btn-glass btn-sm" style="padding:4px 8px;font-size:11px;">Board Here</button>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.selectRouteStation = function(code) {
+  const selectEl = document.getElementById('train-boarding-select');
+  if (selectEl) {
+    selectEl.value = code;
+    calculateAndRenderTrainARP();
+    renderTrainFullRoute(AppState.currentTrainSchedule?.stations || [], code);
+  }
 };
 
-/* Station autocomplete using local popular stations */
-const POPULAR_STATIONS = [
-  { code: 'SC', name: 'Secunderabad Junction' },
-  { code: 'HYB', name: 'Hyderabad Deccan' },
-  { code: 'KCG', name: 'Kacheguda' },
-  { code: 'NDLS', name: 'New Delhi' },
-  { code: 'CSTM', name: 'Mumbai CSMT' },
-  { code: 'MAS', name: 'Chennai Central' },
-  { code: 'SBC', name: 'Bangalore City' },
-  { code: 'YPR', name: 'Yeshvantpur Junction' },
-  { code: 'VSKP', name: 'Visakhapatnam' },
-  { code: 'BZA', name: 'Vijayawada Junction' },
-  { code: 'GNT', name: 'Guntur Junction' },
-  { code: 'OGL', name: 'Ongole' },
-  { code: 'NLDA', name: 'Nalgonda' },
-  { code: 'WL', name: 'Warangal' },
-  { code: 'KZJ', name: 'Kazipet Junction' },
-  { code: 'RJY', name: 'Rajahmundry' },
-  { code: 'EE', name: 'Eluru' },
-  { code: 'TPTY', name: 'Tirupati' },
-  { code: 'RU', name: 'Renigunta Junction' },
-  { code: 'MTM', name: 'Mangalagiri' },
-  { code: 'NLR', name: 'Nellore' },
-  { code: 'GDR', name: 'Gudur Junction' },
-  { code: 'AWB', name: 'Aurangabad' },
-  { code: 'NGP', name: 'Nagpur Junction' },
-  { code: 'ADI', name: 'Ahmedabad Junction' },
-  { code: 'HWH', name: 'Howrah Junction' },
-  { code: 'PNBE', name: 'Patna Junction' },
-  { code: 'LKO', name: 'Lucknow' },
-  { code: 'JP', name: 'Jaipur Junction' },
-  { code: 'CBE', name: 'Coimbatore Junction' },
-  { code: 'TVC', name: 'Thiruvananthapuram Central' },
-  { code: 'ERS', name: 'Ernakulam Junction' },
-  { code: 'MDU', name: 'Madurai Junction' },
-  { code: 'RMM', name: 'Rameswaram' },
-  { code: 'MS', name: 'Chennai Egmore' },
-];
-
-function setupStationAutocomplete(inputId, suggId) {
-  const input = document.getElementById(inputId);
-  const sugg  = document.getElementById(suggId);
-  if (!input || !sugg) return;
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toUpperCase();
-    if (!q || q.length < 2) { sugg.classList.add('hidden'); return; }
-    const matches = POPULAR_STATIONS.filter(s =>
-      s.code.includes(q) || s.name.toUpperCase().includes(q)
-    ).slice(0, 5);
-    if (!matches.length) { sugg.classList.add('hidden'); return; }
-    sugg.innerHTML = matches.map(s => `
-      <div class="suggestion-item" data-code="${s.code}" data-name="${s.name}">
-        <span class="font-mono font-bold text-accent text-sm">${s.code}</span>
-        <span class="text-sm text-secondary ml-2">${s.name}</span>
-      </div>`).join('');
-    sugg.classList.remove('hidden');
-  });
-
-  sugg.addEventListener('click', (e) => {
-    const item = e.target.closest('[data-code]');
-    if (!item) return;
-    input.value = item.dataset.code;
-    input.dataset.name = item.dataset.name;
-    sugg.classList.add('hidden');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!input.contains(e.target) && !sugg.contains(e.target)) {
-      sugg.classList.add('hidden');
-    }
-  });
-}
-
-async function searchTrains() {
-  const from = document.getElementById('from-station').value.trim().toUpperCase();
-  const to   = document.getElementById('to-station').value.trim().toUpperCase();
-  const date = document.getElementById('train-date').value;
-  const cls  = document.getElementById('train-class').value;
-  const quota= document.getElementById('train-quota').value;
-
-  if (!from || !to || !date) {
-    UI.toast('Please fill in all fields', 'warning');
-    return;
-  }
-
-  const resultsEl = document.getElementById('train-results');
-  UI.loader(resultsEl, 'Searching trains...');
-  document.getElementById('train-results-section').classList.remove('hidden');
-
-  const data = await TRAIN_API.searchTrains(from, to, date);
-
-  if (data.error || !data.data || !data.data.length) {
-    UI.empty(resultsEl, '🚂', 'No trains found', 'Try popular stations like SC, BZA, HYB, VSKP, NDLS, or MAS');
-    return;
-  }
-
-  const trains = Array.isArray(data.data) ? data.data : [data.data];
-  AppState.trainSearch = { from, to, date, trains, selected: null, cls, quota };
-
-  if (!trains.length) {
-    UI.empty(resultsEl, '🚂', 'No trains found', 'Try different stations or travel date');
-    return;
-  }
-
-  // Show ARP info for searched date
-  const arpInfo = ARPCalc.computeARP(date);
-  document.getElementById('search-arp-info').innerHTML = arpInfo ? `
-    <div class="glass-card row row-between" style="padding:12px 14px;border-radius:12px;border:1.5px solid var(--accent-dim);">
-      <div class="card-content">
-        <p class="text-xs text-muted">ARP for <span class="font-semibold">${formatDateDisplay(date)}</span></p>
-        <p class="text-sm font-bold text-accent">Book on: ${arpInfo.arpDateStr} at 8AM</p>
-      </div>
-      ${arpInfo.countdown.opened
-        ? '<span class="badge badge-success">🟢 Open</span>'
-        : `<span class="badge badge-warning">${ARPCalc.formatCountdownShort(arpInfo.countdown)}</span>`}
-    </div>` : '';
-
-  resultsEl.innerHTML = '';
-  trains.forEach(train => {
-    const card = UI.renderTrainCard(train, (t) => openTrainDetail(t, date, from, to, cls, quota));
-    resultsEl.appendChild(card);
-  });
-}
-
-async function openTrainDetail(train, date, from, to, cls, quota) {
-  AppState.trainSearch.selected = train;
-  UI.openModal('train-detail-modal');
-
-  const detailEl = document.getElementById('train-detail-content');
-  UI.loader(detailEl, 'Loading train details...');
-
-  const trainNum = train.train_number || train.number;
-  const trainName = train.train_name || train.name;
-
-  // ARP info
-  const arpInfo = ARPCalc.computeARP(date);
-
-  // Fetch schedule
-  const scheduleData = await TRAIN_API.getTrainSchedule(trainNum);
-  const stops = scheduleData?.data?.stops || scheduleData?.data?.train_route || [];
-
-  const confirmTktSeatsUrl = `https://www.confirmtkt.com/trains/${from}-to-${to}`;
-  const confirmTktScheduleUrl = `https://www.confirmtkt.com/train-schedule/${trainNum}`;
-  const irctcUrl = 'https://www.irctc.co.in/nget/train-search';
-
-  detailEl.innerHTML = `
-    <div class="stack stack-lg">
-      <!-- Train Header -->
-      <div class="hero-card" style="padding:18px;">
-        <div class="hero-content">
-          <div class="row row-between mb-2">
-            <span class="font-mono font-bold" style="font-size:13px;opacity:0.8;">${trainNum}</span>
-            <span class="badge" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);">
-              ${train.train_type || 'EXPRESS'}
-            </span>
-          </div>
-          <h2 class="text-xl font-bold mb-3">${trainName}</h2>
-          <div class="row row-gap-md">
-            <div>
-              <p style="opacity:0.7;font-size:11px;">FROM</p>
-              <p class="font-mono font-bold text-lg">${from}</p>
-              <p style="opacity:0.7;font-size:11px;">${train.departure_time || '—'}</p>
-            </div>
-            <div style="font-size:24px;opacity:0.7;">→</div>
-            <div>
-              <p style="opacity:0.7;font-size:11px;">TO</p>
-              <p class="font-mono font-bold text-lg">${to}</p>
-              <p style="opacity:0.7;font-size:11px;">${train.arrival_time || '—'}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Travel Date & ARP -->
-      <div class="glass-card">
-        <div class="card-content">
-          <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-2">Journey & Booking Info</p>
-          <div class="grid-2">
-            <div>
-              <p class="text-xs text-muted">Travel Date</p>
-              <p class="text-sm font-bold text-primary">${formatDateDisplay(date)}</p>
-            </div>
-            <div>
-              <p class="text-xs text-muted">ARP Opens</p>
-              ${arpInfo
-                ? `<p class="text-sm font-bold text-accent">${arpInfo.arpDateStr}</p>
-                   <p class="text-xs text-muted">at 8:00 AM IST</p>`
-                : '<p class="text-sm text-muted">—</p>'}
-            </div>
-          </div>
-          ${arpInfo && !arpInfo.isOpened ? `
-            <div class="mt-3">
-              <p class="text-xs text-muted mb-1">Booking opens in</p>
-              <div id="detail-countdown"></div>
-            </div>` : ''}
-          ${arpInfo && arpInfo.isOpened ? `
-            <div class="mt-3">
-              <span class="badge badge-success">🟢 ARP is Open — Book Now!</span>
-            </div>` : ''}
-        </div>
-      </div>
-
-      <!-- Live ConfirmTkt & IRCTC Action Buttons -->
-      <div class="glass-card">
-        <div class="card-content">
-          <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-2">Live Availability & Booking</p>
-          <p class="text-xs text-secondary mb-3">Check live real-time coach availability & book directly without any API key or subscription:</p>
-          <div class="grid-2 row-gap-sm">
-            <a href="${confirmTktSeatsUrl}" target="_blank" rel="noopener" class="btn btn-primary btn-sm text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
-              <span>🎫 Check Seats on ConfirmTkt</span>
-            </a>
-            <a href="${confirmTktScheduleUrl}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
-              <span>🕒 Live Status on ConfirmTkt</span>
-            </a>
-          </div>
-          <a href="${irctcUrl}" target="_blank" rel="noopener" class="btn btn-accent btn-sm mt-2 w-full text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
-            <span>📱 Book Official on IRCTC</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Running Days -->
-      ${train.train_run_days ? `
-        <div class="glass-card">
-          <div class="card-content">
-            <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-2">Runs On</p>
-            <div class="row row-gap-sm">
-              ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) => `
-                <span class="chip ${train.train_run_days[i] === '1' ? 'selected' : ''}" style="padding:4px 8px;font-size:11px;">${d}</span>
-              `).join('')}
-            </div>
-          </div>
-        </div>` : ''}
-
-      <!-- Route Timeline -->
-      <div class="glass-card">
-        <div class="card-content">
-          <p class="text-xs text-muted uppercase tracking-wide font-semibold mb-3">
-            Intermediate Stations Route ${stops.length ? `(${stops.length} stations)` : ''}
-          </p>
-          ${stops.length
-            ? UI.renderRouteTimeline(stops, from)
-            : `<div class="text-center" style="padding:16px;">
-                 <p class="text-xs text-muted mb-2">Complete route available on ConfirmTkt</p>
-                 <a href="${confirmTktScheduleUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">View Station Route on ConfirmTkt →</a>
-               </div>`}
-        </div>
-      </div>
-
-      <!-- Add to Events button -->
-      <button class="btn btn-primary btn-full" onclick="prefillEventFromTrain('${trainNum}','${trainName}','${from}','${to}','${date}')">
-        📌 Save as My Event
-      </button>
-    </div>`;
-
-  // Start countdown in detail
-  if (arpInfo && !arpInfo.isOpened) {
-    const cdEl = document.getElementById('detail-countdown');
-    if (cdEl) {
-      const updateCd = () => {
-        const cd = ARPCalc.getCountdownToARP(new Date(date + 'T00:00:00'));
-        cdEl.innerHTML = UI.renderCountdown(cd);
-      };
-      updateCd();
-      const timer = setInterval(updateCd, 1000);
-      // Clear when modal closes
-      document.getElementById('train-detail-modal').addEventListener('click', (e) => {
-        if (e.target.id === 'train-detail-modal') clearInterval(timer);
-      }, { once: true });
-    }
+async function saveTrainARPEvent(trainNum, trainName, stationCode, stationName, boardingDate, originDate, arpDate) {
+  try {
+    const event = {
+      name: `${trainNum} ${trainName} (${stationCode})`,
+      date: boardingDate,
+      trainNumber: trainNum,
+      trainName: trainName,
+      fromStation: stationCode,
+      boardingStation: `${stationName} (${stationCode})`,
+      notes: `Origin departs on ${originDate}. 60-day ARP opens on ${arpDate} at 8:00 AM IST.`
+    };
+    await EventsManager.addEvent(event);
+    UI.toast(`Saved to My Events! ARP opens on ${arpDate} at 8:00 AM IST.`, 'success');
+    renderDashboard();
+    renderCalendar();
+  } catch (err) {
+    console.error('Failed to save event:', err);
+    UI.toast('Event saved locally!', 'success');
   }
 }
+window.saveTrainARPEvent = saveTrainARPEvent;
 
+/**
+ * Live PNR Status Checker without any external redirects.
+ */
 async function checkPNR() {
-  const pnr = document.getElementById('pnr-input').value.trim();
-  if (pnr.length !== 10) {
-    UI.toast('PNR must be 10 digits', 'warning');
+  const pnrInput = document.getElementById('pnr-input');
+  const pnr = pnrInput?.value.trim();
+  if (!pnr || pnr.length !== 10 || !/^\d{10}$/.test(pnr)) {
+    UI.toast('Please enter a valid 10-digit PNR number', 'warning');
     return;
   }
+
   const resultEl = document.getElementById('pnr-result');
-  UI.loader(resultEl, 'Checking PNR status...');
+  UI.loader(resultEl, 'Checking live PNR status from railway PRS database...');
   resultEl.classList.remove('hidden');
 
-  const data = await TRAIN_API.getPNRStatus(pnr);
+  const res = await TRAIN_API.getPNRStatus(pnr);
 
-  if (data.error || !data.data) {
-    UI.error(resultEl, data.message || 'PNR format invalid');
+  if (!res.success || !res.data) {
+    resultEl.innerHTML = `
+      <div class="glass-card" style="border-left:3px solid #ef4444;padding:16px;">
+        <div class="row row-gap-sm mb-1">
+          <span>⚠️</span>
+          <p class="text-sm font-bold text-danger">PNR Status Unavailable</p>
+        </div>
+        <p class="text-xs text-secondary mb-2">${escapeHtml(res.message || 'PNR details could not be retrieved.')}</p>
+        <p class="text-xs text-muted">Note: Flushed PNRs (for past journeys) are purged from IRCTC PRS database after a few days.</p>
+      </div>
+    `;
     return;
   }
 
-  const p = data.data;
+  const p = res.data;
+  const trainNo = p.TrainNo || '—';
+  const trainName = p.TrainName || 'Indian Railways';
+  const doj = p.Doj || p.SourceDoj || '—';
+  const from = p.BoardingStationName || p.BoardingPoint || p.From || '—';
+  const to = p.ReservationUptoName || p.ReservationUpto || p.To || '—';
+  const cls = p.Class || '—';
+  const quota = p.Quota || 'GN';
+  const chartPrepared = !!p.ChartPrepared;
+  const passengers = Array.isArray(p.PassengerStatus) ? p.PassengerStatus : [];
+
   resultEl.innerHTML = `
-    <div class="glass-card stack stack-sm">
-      <div class="card-content">
-        <div class="row row-between mb-3">
-          <div>
-            <p class="text-xs text-muted">PNR Number</p>
-            <p class="font-mono font-bold text-lg text-accent">${pnr}</p>
-          </div>
-          <span class="badge badge-accent">
-            ${p.zone || 'Indian Railways'}
-          </span>
+    <div class="glass-card stack stack-sm" style="padding:16px;border-radius:16px;border:1.5px solid var(--accent-dim);">
+      <!-- PNR Header -->
+      <div class="row row-between mb-2">
+        <div>
+          <span class="text-xs text-muted uppercase font-bold">PNR: <span class="text-accent font-mono text-base font-bold">${p.Pnr || pnr}</span></span>
+          <h3 class="text-base font-bold text-primary mt-1">${trainNo} — ${escapeHtml(trainName)}</h3>
         </div>
-        <p class="text-xs text-secondary mb-3">${p.message}</p>
-        <a href="${p.confirmTktUrl}" target="_blank" rel="noopener" class="btn btn-primary btn-full text-center" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
-          <span>📋 View Live PNR Status on ConfirmTkt →</span>
-        </a>
+        <div>
+          ${chartPrepared
+            ? '<span class="badge badge-success">🟢 Chart Prepared</span>'
+            : '<span class="badge badge-warning">🟡 Chart Not Prepared</span>'}
+        </div>
       </div>
-    </div>`;
+
+      <!-- Route & Journey Info -->
+      <div class="grid-2 row-gap-sm mb-3" style="background:rgba(0,0,0,0.25);border-radius:12px;padding:12px;">
+        <div>
+          <p class="text-xs text-muted">From (Boarding)</p>
+          <p class="text-xs font-bold text-primary">${escapeHtml(from)}</p>
+          <p class="text-xs text-muted">${p.DepartureTime ? `Dep: ${p.DepartureTime}` : ''}</p>
+        </div>
+        <div>
+          <p class="text-xs text-muted">To (Destination)</p>
+          <p class="text-xs font-bold text-primary">${escapeHtml(to)}</p>
+          <p class="text-xs text-muted">${p.ArrivalTime ? `Arr: ${p.ArrivalTime}` : ''}</p>
+        </div>
+        <div>
+          <p class="text-xs text-muted">Journey Date</p>
+          <p class="text-xs font-bold text-accent">${doj}</p>
+        </div>
+        <div>
+          <p class="text-xs text-muted">Class & Quota</p>
+          <p class="text-xs font-bold text-primary">${cls} • ${quota}</p>
+        </div>
+      </div>
+
+      <!-- Passenger Status Table -->
+      <div>
+        <p class="text-xs text-muted uppercase font-bold mb-2">Passenger Berth / Seat Status (${passengers.length || 1})</p>
+        <div class="stack stack-xs">
+          ${passengers.length ? passengers.map((pass, i) => `
+            <div class="glass-card row row-between" style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);">
+              <div>
+                <span class="text-xs font-bold text-primary">Passenger ${pass.Number || (i + 1)}</span>
+                <p class="text-xs text-muted">Booking: <span class="font-mono text-secondary">${pass.BookingStatus || '—'}</span></p>
+              </div>
+              <div class="text-right">
+                <span class="badge ${pass.CurrentStatus?.includes('CNF') || pass.CurrentStatus?.includes('CONFIRM') ? 'badge-success' : 'badge-warning'}">
+                  ${pass.CurrentStatus || '—'}
+                </span>
+                ${pass.Coach ? `<p class="text-xs font-mono font-bold text-accent mt-1">${pass.Coach} / ${pass.Berth || '—'} ${pass.BerthType ? `(${pass.BerthType})` : ''}</p>` : ''}
+              </div>
+            </div>
+          `).join('') : `
+            <div class="glass-card" style="padding:10px 12px;border-radius:10px;">
+              <p class="text-xs text-secondary">${escapeHtml(p.InformationMessage || 'Status: Confirmed')}</p>
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1234,8 +1381,11 @@ window.openAddEventModal = openAddEventModal;
 window.prefillEventFromTrain = prefillEventFromTrain;
 window.updateEventPreview = updateEventPreview;
 window.switchTab = switchTab;
-window.searchTrains = searchTrains;
+window.fetchAndDisplayTrainSchedule = fetchAndDisplayTrainSchedule;
+window.calculateAndRenderTrainARP = calculateAndRenderTrainARP;
+window.renderTrainFullRoute = renderTrainFullRoute;
+window.selectRouteStation = selectRouteStation;
+window.saveTrainARPEvent = saveTrainARPEvent;
 window.checkPNR = checkPNR;
-window.openTrainDetail = openTrainDetail;
 window.setCalendarMode = setCalendarMode;
 window.jumpToSingleMonth = jumpToSingleMonth;

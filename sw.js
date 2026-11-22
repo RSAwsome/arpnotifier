@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arp-notifier-v2.0.0';
+const CACHE_NAME = 'arp-notifier-v2.1.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -43,6 +43,7 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET
   if (event.request.method !== 'GET') return;
   if (url.hostname.includes('firestore') || url.hostname.includes('firebase')) return;
+  if (url.pathname.startsWith('/api/')) return;
 
   // Network-first for HTML and JS to ensure latest updates
   if (url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname === '/' || url.pathname.endsWith('/arpnotifier/')) {

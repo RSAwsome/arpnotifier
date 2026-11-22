@@ -118,6 +118,65 @@ function computeARP(journeyDateStr) {
   };
 }
 
+/**
+ * Computes ARP booking window accurately considering train departure day vs passenger boarding day.
+ * If user boards on Day 2 or Day 3, the train actually departed (Day - 1) days earlier.
+ * Indian Railways ARP booking opens 60 days before the train's ORIGIN departure, NOT the boarding date!
+ */
+function computeBoardingARP(boardingDateStr, stationDay = 1) {
+  if (!boardingDateStr) return null;
+  const bd = new Date(boardingDateStr + 'T00:00:00');
+  if (isNaN(bd.getTime())) return null;
+
+  const day = parseInt(stationDay, 10) || 1;
+  const offsetDays = Math.max(0, day - 1);
+
+  // Train Origin Departure Date = Boarding Date - offsetDays
+  const od = new Date(bd);
+  od.setDate(od.getDate() - offsetDays);
+
+  // 60-day ARP opens 60 days before Origin Departure Date at 8:00 AM IST
+  const arpDT = getARPDateTime(od);
+  const now = new Date();
+  const countdown = getCountdownToARP(od);
+  const daysFromNowToOrigin = Math.ceil((od - now) / 86400000);
+  const daysFromNowToBoarding = Math.ceil((bd - now) / 86400000);
+
+  // Tatkal Dates (1 day before origin departure date)
+  const tatkalDate = new Date(od);
+  tatkalDate.setDate(tatkalDate.getDate() - 1);
+  const tatkalAcDT = new Date(tatkalDate);
+  tatkalAcDT.setHours(10, 0, 0, 0); // 10:00 AM IST
+  const tatkalSlDT = new Date(tatkalDate);
+  tatkalSlDT.setHours(11, 0, 0, 0); // 11:00 AM IST
+
+  return {
+    boardingDate: bd,
+    boardingDateStr: formatARPDate(bd),
+    boardingDateShort: formatARPDateShort(bd),
+    originDate: od,
+    originDateStr: formatARPDate(od),
+    originDateShort: formatARPDateShort(od),
+    stationDay: day,
+    offsetDays,
+    isMultiDay: offsetDays > 0,
+    arpDate: arpDT,
+    arpDateStr: formatARPDateShort(arpDT),
+    arpDateFull: formatARPDate(arpDT),
+    arpTime: formatARPTime(),
+    countdown,
+    daysFromNowToOrigin,
+    daysFromNowToBoarding,
+    isOpened: countdown.opened,
+    arpDaysAgo: countdown.opened ? Math.abs(Math.floor((now - arpDT) / 86400000)) : null,
+    tatkalDateStr: formatARPDateShort(tatkalDate),
+    tatkalAcTime: '10:00 AM IST',
+    tatkalSlTime: '11:00 AM IST',
+    tatkalAcOpened: now >= tatkalAcDT,
+    tatkalSlOpened: now >= tatkalSlDT,
+  };
+}
+
 /** Returns next N ARP windows from today */
 function getUpcomingARPs(n = 7) {
   const today = new Date();
@@ -173,6 +232,7 @@ window.ARPCalc = {
   getCountdownToARP,
   getTodaysARPInfo,
   computeARP,
+  computeBoardingARP,
   getUpcomingARPs,
   pad2,
   formatCountdownShort,
