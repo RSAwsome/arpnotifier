@@ -1076,12 +1076,12 @@ const TRAIN_API = {
       return { success: false, error: 'Please enter a valid 5-digit train number.' };
     }
 
-    // 1. Try relative backend API (/api/train/:trainNo)
+    // 1. Try relative backend API (/api/train/:trainNo) - works on local server or Vercel
     try {
       const res = await fetch(`/api/train/${num}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && json.data) {
+        if (json.success && json.data && json.data.stations?.length > 0) {
           return { success: true, data: json.data };
         }
       }
@@ -1089,10 +1089,10 @@ const TRAIN_API = {
       console.warn('Backend /api/train endpoint failed, trying fallbacks...', e);
     }
 
-    // 2. Fallback: Check local rich train database
+    // 2. Check local rich train database (instant zero-latency offline response)
     const localMatch = TRAIN_DATABASE.find(t => t.number === num);
-    if (localMatch) {
-      const stops = localMatch.stops || [];
+    if (localMatch && localMatch.stops && localMatch.stops.length > 0) {
+      const stops = localMatch.stops;
       return {
         success: true,
         data: {
@@ -1106,10 +1106,76 @@ const TRAIN_API = {
       };
     }
 
-    // 3. Fallback: Fetch via CORS proxy if running without backend node server
+    // 3. Query ConfirmTkt live train route API (CORS enabled for client-side direct calls)
+    // Tries multiple operational dates in case train runs on specific days of the week
+    const dateCandidates = [];
+    const now = new Date();
+    for (const offset of [0, -1, 1, -2, -3]) {
+      const d = new Date(now);
+      d.setDate(now.getDate() + offset);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      dateCandidates.push(`${dd}-${mm}-${yyyy}`);
+    }
+
+    for (const doj of dateCandidates) {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 6000);
+        const apiUrl = `https://api.confirmtkt.com/api/trains/livestatusall?trainno=${num}&doj=${doj}&locale=en`;
+        const liveRes = await fetch(apiUrl, { signal: controller.signal });
+        clearTimeout(tid);
+
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          if (liveData && Array.isArray(liveData.stations) && liveData.stations.length > 0) {
+            const parsedStations = liveData.stations.map((s) => ({
+              station_code: s.stnCode,
+              station_name: s.stnCodeName || s.stnCode,
+              distance_km: s.distance || 0,
+              arrival_time: s.schArrTime || null,
+              departure_time: s.schDepTime || null,
+              halt_time: s.haltMinutes ? `${s.haltMinutes}m` : '0m',
+              day: s.schDayCnt || s.dayCnt || 1
+            }));
+
+            const trainName = liveData.trainName ||
+              (parsedStations.length > 0
+                ? `Train ${num} (${parsedStations[0].station_code} - ${parsedStations[parsedStations.length - 1].station_code})`
+                : `Train ${num}`);
+
+            const scheduleData = {
+              train_number: num,
+              train_name: trainName,
+              source_station: parsedStations[0],
+              destination_station: parsedStations[parsedStations.length - 1],
+              total_stations: parsedStations.length,
+              stations: parsedStations
+            };
+
+            // Dynamically cache into TRAIN_DATABASE for subsequent instantaneous lookups
+            TRAIN_DATABASE.push({
+              number: num,
+              name: trainName,
+              type: 'EXPRESS',
+              runDays: '1111111',
+              classes: ['SL', '3A', '2A', '1A'],
+              stops: parsedStations
+            });
+
+            return { success: true, data: scheduleData };
+          }
+        }
+      } catch (err) {
+        console.warn(`ConfirmTkt live API attempt for date ${doj} failed:`, err);
+      }
+    }
+
+    // 4. Fallback: Fetch via CORS proxy if running without backend node server
     const targetUrl = `https://www.confirmtkt.com/train-schedule/${num}`;
     const corsProxies = [
-      (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
       (u) => `https://api.codetabs.com/v1/proxy/?quest=${u}`
     ];
 
@@ -1120,10 +1186,13 @@ const TRAIN_API = {
         const pRes = await fetch(proxyFn(targetUrl), { signal: controller.signal });
         clearTimeout(tid);
         if (pRes.ok) {
-          const html = await pRes.text();
-          const parsed = this.parseScheduleHtmlClient(html, num);
-          if (parsed && parsed.stations && parsed.stations.length > 0) {
-            return { success: true, data: parsed };
+          const body = await pRes.json();
+          const html = body.contents || body;
+          if (typeof html === 'string') {
+            const parsed = this.parseScheduleHtmlClient(html, num);
+            if (parsed && parsed.stations && parsed.stations.length > 0) {
+              return { success: true, data: parsed };
+            }
           }
         }
       } catch (err) {
@@ -1246,32 +1315,67 @@ const TRAIN_API = {
       return { success: false, error: 'invalid', message: 'PNR must be exactly 10 numeric digits.' };
     }
 
+    // Demo / Mock PNR support for test number 1234567890
+    if (pnr === '1234567890') {
+      return {
+        success: true,
+        data: {
+          Pnr: '1234567890',
+          TrainNo: '17250',
+          TrainName: 'Kakatiya Express',
+          Doj: '15-Dec-2026',
+          BookingDate: '16-Oct-2026',
+          From: 'CCT',
+          To: 'TPTY',
+          BoardingPoint: 'CCT',
+          BoardingStationName: 'Kakinada Town',
+          ReservationUptoName: 'Tirupati',
+          DepartureTime: '15:15',
+          ArrivalTime: '05:25',
+          Class: 'SL',
+          Quota: 'GN',
+          ChartPrepared: false,
+          PassengerCount: 2,
+          PassengerStatus: [
+            { BookingStatus: 'CNF/S4/23', CurrentStatus: 'CNF/S4/23', Coach: 'S4', Berth: '23' },
+            { BookingStatus: 'CNF/S4/24', CurrentStatus: 'CNF/S4/24', Coach: 'S4', Berth: '24' }
+          ]
+        }
+      };
+    }
+
     let pnrData = null;
 
-    // 1. Try local backend proxy
+    // 1. Try local backend proxy (/api/pnr/:pnr) if running on Node or Vercel
     try {
       const res = await fetch(`/api/pnr/${pnr}`);
       if (res.ok) {
         pnrData = await res.json();
       }
     } catch (err) {
-      console.warn('Backend /api/pnr proxy unavailable, trying fallback proxies...', err);
+      console.warn('Backend /api/pnr proxy unavailable, querying railway service directly...', err);
     }
 
-    // 2. If backend proxy didn't return data, try public CORS proxies
+    // 2. Direct client-side fetch from ConfirmTkt (CORS is natively enabled)
+    if (!pnrData) {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 7000);
+        const targetUrl = `https://api.confirmtkt.com/api/pnr/status/${pnr}`;
+        const res = await fetch(targetUrl, { signal: controller.signal });
+        clearTimeout(tid);
+        if (res.ok) {
+          pnrData = await res.json();
+        }
+      } catch (err) {
+        console.warn('Direct PNR fetch failed, trying CORS proxies...', err);
+      }
+    }
+
+    // 3. Fallback to public CORS proxies if direct call is blocked by browser extensions
     if (!pnrData) {
       const targetUrl = `https://api.confirmtkt.com/api/pnr/status/${pnr}`;
       const proxies = [
-        {
-          name: 'corsproxy_io',
-          getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-          parse: async (r) => r.json()
-        },
-        {
-          name: 'codetabs',
-          getUrl: (u) => `https://api.codetabs.com/v1/proxy/?quest=${u}`,
-          parse: async (r) => r.json()
-        },
         {
           name: 'allorigins',
           getUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
@@ -1279,6 +1383,11 @@ const TRAIN_API = {
             const d = await r.json();
             return JSON.parse(d.contents);
           }
+        },
+        {
+          name: 'codetabs',
+          getUrl: (u) => `https://api.codetabs.com/v1/proxy/?quest=${u}`,
+          parse: async (r) => r.json()
         }
       ];
 

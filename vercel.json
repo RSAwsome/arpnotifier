@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/pnr/:pnr", "destination": "/api/pnr/[pnr]" },
+    { "source": "/api/train/:trainNo", "destination": "/api/train/[trainNo]" },
+    { "source": "/api/schedule/:trainNo", "destination": "/api/train/[trainNo]" }
+  ]
+}

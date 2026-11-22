@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arp-notifier-v2.1.0';
+const CACHE_NAME = 'arp-notifier-v2.2.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -6,13 +6,13 @@ const STATIC_ASSETS = [
   './css/main.css',
   './css/themes.css',
   './css/animations.css',
-  './js/app.js?v=2.0.0',
-  './js/firebase-config.js?v=2.0.0',
-  './js/arp-calculator.js?v=2.0.0',
-  './js/train-api.js?v=2.0.0',
-  './js/festivals.js?v=2.0.0',
-  './js/events-manager.js?v=2.0.0',
-  './js/ui-components.js?v=2.0.0',
+  './js/app.js?v=2.2.0',
+  './js/firebase-config.js?v=2.2.0',
+  './js/arp-calculator.js?v=2.2.0',
+  './js/train-api.js?v=2.2.0',
+  './js/festivals.js?v=2.2.0',
+  './js/events-manager.js?v=2.2.0',
+  './js/ui-components.js?v=2.2.0',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -43,6 +43,7 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET
   if (event.request.method !== 'GET') return;
   if (url.hostname.includes('firestore') || url.hostname.includes('firebase')) return;
+  if (url.hostname.includes('confirmtkt') || url.hostname.includes('rail')) return;
   if (url.pathname.startsWith('/api/')) return;
 
   // Network-first for HTML and JS to ensure latest updates
